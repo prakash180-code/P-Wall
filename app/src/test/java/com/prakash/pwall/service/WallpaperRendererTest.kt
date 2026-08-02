@@ -112,6 +112,43 @@ class WallpaperRendererTest {
     }
 
     @Test
+    fun backgroundPanBounds_fill_matchesTransformOverflow() {
+        // 200x100 image in 100x100 target, FILL scale = max(0.5, 1.0) = 1.0,
+        // scaled image is 200x100 => 50px horizontal overflow, none vertically.
+        val (maxPanX, maxPanY) = WallpaperRenderer.backgroundPanBounds(
+            200, 100, 100, 100,
+            settings.copy(backgroundMode = BackgroundMode.FILL)
+        )
+        assertEquals(50f, maxPanX, 0.001f)
+        assertEquals(0f, maxPanY, 0.001f)
+    }
+
+    @Test
+    fun backgroundPanBounds_fit_neverHasRoom() {
+        // FIT never overflows (the whole image is visible), so pan room is zero.
+        val (maxPanX, maxPanY) = WallpaperRenderer.backgroundPanBounds(
+            200, 100, 100, 100,
+            settings.copy(backgroundMode = BackgroundMode.FIT)
+        )
+        assertEquals(0f, maxPanX, 0.001f)
+        assertEquals(0f, maxPanY, 0.001f)
+    }
+
+    @Test
+    fun backgroundPanBounds_custom_delegatesToCustomPanBounds() {
+        val (maxPanX, maxPanY) = WallpaperRenderer.backgroundPanBounds(
+            200, 100, 100, 100,
+            settings.copy(
+                backgroundMode = BackgroundMode.CUSTOM,
+                backgroundZoom = 2f,
+                backgroundRotationDegrees = 0f
+            )
+        )
+        assertEquals(150f, maxPanX, 0.001f)
+        assertEquals(50f, maxPanY, 0.001f)
+    }
+
+    @Test
     fun blockTopLeft_customCentersOnFraction() {
         val (x, y) = WallpaperRenderer.blockTopLeft(
             canvasWidth = 1000f,

@@ -79,7 +79,8 @@ class SettingsRepository(
             parallaxEnabled = booleanPreference(PARALLAX_ENABLED, false),
             parallaxSensitivity = floatPreference(PARALLAX_SENSITIVITY, 0.5f),
             parallaxStrength = floatPreference(PARALLAX_STRENGTH, 0.5f),
-            parallaxSmoothing = floatPreference(PARALLAX_SMOOTHING, 0.5f)
+            parallaxSmoothing = floatPreference(PARALLAX_SMOOTHING, 0.5f),
+            depthEnabled = booleanPreference(DEPTH_ENABLED, false)
         )
     }
 
@@ -111,6 +112,7 @@ class SettingsRepository(
         prefs[floatPreferencesKey(PARALLAX_SENSITIVITY)] = parallaxSensitivity
         prefs[floatPreferencesKey(PARALLAX_STRENGTH)] = parallaxStrength
         prefs[floatPreferencesKey(PARALLAX_SMOOTHING)] = parallaxSmoothing
+        prefs[booleanPreferencesKey(DEPTH_ENABLED)] = depthEnabled
     }
 
     private fun Preferences.stringPreference(key: String): String? = this[stringPreferencesKey(key)]
@@ -154,5 +156,6 @@ class SettingsRepository(
         const val PARALLAX_SENSITIVITY = "parallax_sensitivity"
         const val PARALLAX_STRENGTH = "parallax_strength"
         const val PARALLAX_SMOOTHING = "parallax_smoothing"
+        const val DEPTH_ENABLED = "depth_enabled"
     }
 }

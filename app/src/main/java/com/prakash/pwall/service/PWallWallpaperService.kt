@@ -7,6 +7,9 @@ import android.view.SurfaceHolder
 import com.prakash.pwall.PWallApplication
 import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.di.AppContainer
+import com.prakash.pwall.service.depth.DepthEngine
+import com.prakash.pwall.service.depth.DiskMaskStore
+import com.prakash.pwall.service.depth.MlKitSubjectSegmenter
 import com.prakash.pwall.service.motion.ParallaxController
 import com.prakash.pwall.service.render.RenderFrame
 import com.prakash.pwall.service.render.WallpaperCoreModule
@@ -63,6 +66,15 @@ class PWallWallpaperService : WallpaperService() {
             ParallaxController(applicationContext)
         }
 
+        private val depthEngine: DepthEngine by lazy {
+            DepthEngine(
+                scope = scope,
+                store = DiskMaskStore(applicationContext),
+                segmenter = MlKitSubjectSegmenter(),
+                onResult = { renderOnce() }
+            )
+        }
+
         private val renderEngine: WallpaperRenderEngine by lazy {
             WallpaperRenderEngine(motionSource = parallaxController).apply {
                 installModule(WallpaperCoreModule())
@@ -76,6 +88,9 @@ class PWallWallpaperService : WallpaperService() {
                 container.settingsRepository.settings.collect { newSettings ->
                     settings = newSettings
                     parallaxController.updateSettings(newSettings)
+                    if (depthEngine.updateSettings(newSettings)) {
+                        runDepthForCurrentImage()
+                    }
                     refreshBitmapIfNeeded()
                     renderOnce()
                 }
@@ -85,6 +100,7 @@ class PWallWallpaperService : WallpaperService() {
         override fun onDestroy() {
             stopRenderThread()
             parallaxController.stop()
+            depthEngine.close()
             decodeJob?.cancel()
             scope.cancel()
             super.onDestroy()
@@ -144,8 +160,18 @@ class PWallWallpaperService : WallpaperService() {
                         BitmapCache.put(BitmapCache.keyFor(path), it)
                     }
                 selectedBitmap = bitmap
+                if (bitmap != null) {
+                    depthEngine.onImageChanged(path, bitmap)
+                }
                 renderOnce()
             }
+        }
+
+        /** Re-runs segmentation for the already-loaded image (depth just turned on). */
+        private fun runDepthForCurrentImage() {
+            val path = loadedPath ?: return
+            val bitmap = selectedBitmap ?: return
+            depthEngine.onImageChanged(path, bitmap)
         }
 
         private fun startRenderThread() {
@@ -220,6 +246,7 @@ class PWallWallpaperService : WallpaperService() {
                     RenderFrame(
                         settings = settings,
                         backgroundBitmap = selectedBitmap,
+                        foregroundBitmap = depthEngine.currentResult()?.foreground,
                         displayDensity = resources.displayMetrics.scaledDensity,
                         width = canvas.width,
                         height = canvas.height

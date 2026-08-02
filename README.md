@@ -27,6 +27,9 @@
   - 3D parallax: motion-driven background + clock movement with sensitivity,
     strength, and smoothing controls (sensors auto-disabled on unsupported
     devices; battery-aware adaptive frame rate)
+  - AI Depth: on-device subject extraction (Google ML Kit) that hides the clock
+    behind people, pets and objects — segments only when the wallpaper changes,
+    caches masks on disk, and falls back to plain rendering automatically
 - Apply as live wallpaper via the Android Live Wallpaper picker
 - Dark / Light Material 3 theme (follows the system)
 - All settings persisted with DataStore Preferences (restored automatically)
@@ -60,6 +63,12 @@ app/src/main/java/com/prakash/pwall/
 │       ├── SensorMotionProvider  # Accelerometer + gyroscope listener thread
 │       ├── ParallaxMath          # Pure math (smoothing, tilt mapping, clamping)
 │       └── MotionFrame / MotionSource
+│   └── depth/                    # AI Depth engine
+│       ├── DepthEngine           # Orchestrator (segments only on image change)
+│       ├── DepthSegmenter        # Pluggable segmentation backend
+│       ├── MlKitSubjectSegmenter # Google ML Kit subject segmentation
+│       ├── MaskKeys              # Stable disk-cache keys for masks
+│       └── DiskMaskStore         # PNG mask cache (foreground + background)
 ├── ui/
 │   ├── home/                  # Home screen + ViewModel
 │   ├── preview/               # Preview screen + ViewModel
@@ -80,8 +89,24 @@ units), **effects** (post-layer processing) and **modules** (feature bundles):
   foreground → overlay.
 - `WallpaperRenderer` keeps the shared transform/positioning math used by both
   the Compose preview and the engine, so preview and live wallpaper always match.
-- Future premium features (3D parallax, depth engine, weather/battery overlays)
-  plug in as new modules/layers/effects without touching the core.
+- `RenderFrame` exposes a single shared `backgroundMatrix` (transform + parallax
+  shift) so the AI-depth foreground subject stays pixel-aligned with the image.
+- Future premium features (weather/battery overlays, particle effects, manual
+  depth editor) plug in as new modules/layers/effects without touching the core.
+
+## AI Depth Engine
+
+The `service/depth/` package extracts the foreground subject of the wallpaper
+image with Google ML Kit subject segmentation (people, pets, objects):
+
+- Runs **once per wallpaper image change** — never per frame.
+- Foreground (subject) and background (subject erased) masks are cached as PNGs
+  in app-private storage keyed by image identity, so segmentation is not repeated.
+- `ForegroundLayer` composites the subject above the clock and date, hiding them
+  behind the subject.
+- Automatic fallback: if the feature is off, the model is unavailable, or
+  segmentation fails, the wallpaper renders exactly as before.
+- The on-device model downloads at install time via a manifest meta-data entry.
 
 ## Tech Stack
 

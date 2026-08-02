@@ -2,6 +2,51 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.0.0] - Prompt 3 (AI Depth Engine)
+
+### Added
+- AI Depth: on-device subject extraction that hides the clock *behind* people,
+  pets and objects
+  - `service/depth/` package:
+    - `DepthSegmenter` interface (pluggable backend, automatic fallback on any
+      failure) + `MlKitSubjectSegmenter` (Google ML Kit subject segmentation,
+      `enableForegroundBitmap()`; install-time model download via manifest
+      meta-data; background extraction punches a subject-shaped hole with
+      `PorterDuff.Mode.DST_OUT`)
+    - `MaskKeys`: stable disk-cache keys derived from image path + last-modified
+    - `DiskMaskStore`: PNG cache in `files/depth_masks/<key>/` (foreground +
+      background), reused across sessions
+    - `DepthEngine`: orchestrator — segments **only when the wallpaper image
+      changes** (never per frame), serves cached results, clears instantly when
+      disabled
+  - Render integration: `RenderFrame.foregroundBitmap` + a single shared
+    `backgroundMatrix` (background transform + parallax shift) used by both
+    `BackgroundLayer` and `ForegroundLayer`, so the extracted subject stays
+    pixel-aligned with the image even while tilted; `ForegroundLayer` composites
+    the subject above clock/date (clock behind subject). No-op when depth is off
+    or unsupported → identical to plain rendering
+  - `PWallWallpaperService`: depth engine wired into the image-change path only;
+    toggling the feature re-runs segmentation for the current image, disabling
+    drops the subject immediately
+- AI Depth section in Customize: enable switch + explanatory text
+- Settings: `depthEnabled` (default off) persisted via DataStore
+- Unit tests: `MaskKeysTest` (stable, content-addressing) +
+  `backgroundPanBounds` coverage in `WallpaperRendererTest`
+
+### Verified
+- `assembleDebug` + `testDebugUnitTest` + `lintDebug`: 0 errors
+- Unit tests: 71/71 pass (62 previous + 9 new)
+- Lint: 0 errors (15 warnings / 4 hints — same as baseline, none in new code)
+- On-device functional pass (API 33):
+  - AI Depth section renders; switch persists (`depth_enabled` in DataStore)
+  - ML Kit subject segmentation runs exactly once per image change (single
+    `subject_segmentation` module load in logcat, never per frame)
+  - Masks cached to disk and reused; alpha-channel analysis confirmed the
+    foreground is the subject-only bitmap and the background has a matching
+    subject-shaped transparent hole
+  - `pwall-renderer` thread stays alive with depth on; no crashes/ANRs
+  - Settings reverted to default (depth off) after testing
+
 ## [1.0.0] - Prompt 2 (Premium 3D Engine)
 
 ### Added

@@ -198,6 +198,7 @@ private fun CustomizeScreen(
                     )
                 }
                 item { ParallaxSection(settings, viewModel) }
+                item { DepthSection(settings, viewModel) }
                 item {
                     Button(
                         onClick = { launchWallpaperPicker(context) },
@@ -859,6 +860,18 @@ private fun ParallaxSection(settings: WallpaperSettings, vm: CustomizeViewModel)
 private fun hasMotionSensors(context: Context): Boolean {
     val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return false
     return sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null
+}
+
+@Composable
+private fun DepthSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+    SectionCard("AI Depth") {
+        SwitchRow("Extract foreground (clock behind subject)", settings.depthEnabled, vm::setDepthEnabled)
+        Text(
+            text = "Analyzes the wallpaper once when it changes to separate people, pets and objects, then hides the clock behind them. Requires the on-device AI model (small download on first use).",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 private fun formatExample(format: DateFormat): String {

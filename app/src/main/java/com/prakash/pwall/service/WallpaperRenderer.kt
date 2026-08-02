@@ -98,6 +98,32 @@ object WallpaperRenderer {
     }
 
     /**
+     * Real horizontal/vertical overflow (pan room in px) for the given mode.
+     * Uses the exact scaled size each mode produces, so parallax never moves the
+     * image further than it can go without exposing edges.
+     */
+    fun backgroundPanBounds(
+        bitmapWidth: Int,
+        bitmapHeight: Int,
+        targetW: Int,
+        targetH: Int,
+        settings: WallpaperSettings
+    ): Pair<Float, Float> {
+        if (settings.backgroundMode == BackgroundMode.CUSTOM) {
+            return customPanBounds(
+                bitmapWidth, bitmapHeight, targetW, targetH,
+                settings.backgroundZoom, settings.backgroundRotationDegrees
+            )
+        }
+        val transform = backgroundTransform(
+            bitmapWidth, bitmapHeight, targetW, targetH, settings.backgroundMode
+        )
+        val scaledW = bitmapWidth * transform.scaleX
+        val scaledH = bitmapHeight * transform.scaleY
+        return max(0f, (scaledW - targetW) / 2f) to max(0f, (scaledH - targetH) / 2f)
+    }
+
+    /**
      * Pure-logic transform (no Android types) so it can be unit tested.
      * Centered and axis-aligned; never crops the source.
      */

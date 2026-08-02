@@ -1,6 +1,20 @@
 # P-Wall — Roadmap
 
-Development is done prompt-by-prompt. **Sprints 1–7 and Prompt 2 are complete.**
+Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–3 are complete.**
+
+## Prompt 3 — AI Depth Engine ✅ DONE
+- [x] Google ML Kit subject segmentation (`service/depth/MlKitSubjectSegmenter`)
+- [x] Offline, on-device processing (model via Play services, install-time download)
+- [x] Foreground extraction (subject-only bitmap) + background extraction
+      (subject-shaped transparent hole via `DST_OUT`)
+- [x] Cached masks on disk keyed by image identity (`MaskKeys` + `DiskMaskStore`)
+- [x] Clock hidden behind the foreground object (ForegroundLayer above clock/date,
+      shared `backgroundMatrix` keeps subject aligned incl. parallax)
+- [x] Automatic fallback to plain rendering when off / unsupported / fails
+- [x] Automatic caching (segments once per image change, then reuses the cache)
+- [x] Segmentation only when wallpaper changes — never per frame
+- [x] "AI Depth" section in Customize + `depthEnabled` DataStore setting
+- [x] 71/71 tests, 0 lint errors, on-device verified
 
 ## Prompt 2 — Premium 3D Engine ✅ DONE
 - [x] Accelerometer + gyroscope driven movement (`service/motion/`)

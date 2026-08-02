@@ -79,7 +79,8 @@ data class WallpaperSettings(
     val parallaxEnabled: Boolean = false,
     val parallaxSensitivity: Float = 0.5f,
     val parallaxStrength: Float = 0.5f,
-    val parallaxSmoothing: Float = 0.5f
+    val parallaxSmoothing: Float = 0.5f,
+    val depthEnabled: Boolean = false
 ) {
     val clockColorValue: Color
         get() = Color(clockColor)

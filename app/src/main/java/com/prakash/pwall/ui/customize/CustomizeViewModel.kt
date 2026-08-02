@@ -99,6 +99,8 @@ class CustomizeViewModel(
         it.copy(parallaxSmoothing = value.coerceIn(0f, 1f))
     }
 
+    fun setDepthEnabled(enabled: Boolean) = update { it.copy(depthEnabled = enabled) }
+
     private fun update(transform: (WallpaperSettings) -> WallpaperSettings) {
         viewModelScope.launch { settingsRepository.updateSettings(transform) }
     }
