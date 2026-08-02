@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -209,6 +210,11 @@ private fun DraggablePreview(
                     onDragCancel = { dragOffset = null }
                 )
             }
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    onDragEnd(offset.x / size.width, offset.y / size.height)
+                }
+            }
     ) {
         WallpaperPreview(
             settings = settings,
@@ -218,9 +224,9 @@ private fun DraggablePreview(
         )
         Text(
             text = if (settings.position == PositionPreset.CUSTOM) {
-                "Custom position - drag to move"
+                "Custom position - tap or drag to move"
             } else {
-                "Drag the clock to a custom position"
+                "Tap or drag the clock to a custom position"
             },
             style = MaterialTheme.typography.labelLarge,
             color = Color.White.copy(alpha = 0.85f),

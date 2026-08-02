@@ -31,6 +31,7 @@ import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.utils.ClockTextFormatter
 import com.prakash.pwall.utils.applyTransparency
 import com.prakash.pwall.utils.clockTypeface
+import com.prakash.pwall.utils.clampBlockTopLeft
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
@@ -92,49 +93,46 @@ fun ClockOverlay(
                     .offset {
                         val w = columnSize.width.toFloat()
                         val h = columnSize.height.toFloat()
-                        when {
-                            extraOffset != null -> IntOffset(
-                                (extraOffset.x - w / 2f).roundToInt(),
-                                (extraOffset.y - h / 2f).roundToInt()
+                        val topLeft: Pair<Float, Float> = when {
+                            extraOffset != null -> clampBlockTopLeft(
+                                x = extraOffset.x - w / 2f,
+                                y = extraOffset.y - h / 2f,
+                                blockWidth = w,
+                                blockHeight = h,
+                                maxWidth = maxWidth,
+                                maxHeight = maxHeight
                             )
 
-                            settings.position == PositionPreset.CENTER -> IntOffset(
-                                ((maxWidth - w) / 2f).roundToInt(),
-                                ((maxHeight - h) / 2f).roundToInt()
-                            )
+                            settings.position == PositionPreset.CENTER ->
+                                Pair((maxWidth - w) / 2f, (maxHeight - h) / 2f)
 
-                            settings.position == PositionPreset.TOP_LEFT -> IntOffset(
-                                edgePadding.roundToInt(),
-                                edgePadding.roundToInt()
-                            )
+                            settings.position == PositionPreset.TOP_LEFT ->
+                                Pair(edgePadding, edgePadding)
 
-                            settings.position == PositionPreset.TOP_RIGHT -> IntOffset(
-                                (maxWidth - edgePadding - w).roundToInt(),
-                                edgePadding.roundToInt()
-                            )
+                            settings.position == PositionPreset.TOP_RIGHT ->
+                                Pair(maxWidth - edgePadding - w, edgePadding)
 
-                            settings.position == PositionPreset.BOTTOM_LEFT -> IntOffset(
-                                edgePadding.roundToInt(),
-                                (maxHeight - edgePadding - h).roundToInt()
-                            )
+                            settings.position == PositionPreset.BOTTOM_LEFT ->
+                                Pair(edgePadding, maxHeight - edgePadding - h)
 
-                            settings.position == PositionPreset.BOTTOM_RIGHT -> IntOffset(
-                                (maxWidth - edgePadding - w).roundToInt(),
-                                (maxHeight - edgePadding - h).roundToInt()
-                            )
+                            settings.position == PositionPreset.BOTTOM_RIGHT ->
+                                Pair(maxWidth - edgePadding - w, maxHeight - edgePadding - h)
 
-                            settings.position == PositionPreset.BOTTOM_CENTER -> IntOffset(
-                                ((maxWidth - w) / 2f).roundToInt(),
-                                (maxHeight - edgePadding - h).roundToInt()
-                            )
+                            settings.position == PositionPreset.BOTTOM_CENTER ->
+                                Pair((maxWidth - w) / 2f, maxHeight - edgePadding - h)
 
                             else -> { // CUSTOM
-                                IntOffset(
-                                    (settings.positionXFraction * maxWidth - w / 2f).roundToInt(),
-                                    (settings.positionYFraction * maxHeight - h / 2f).roundToInt()
+                                clampBlockTopLeft(
+                                    x = settings.positionXFraction * maxWidth - w / 2f,
+                                    y = settings.positionYFraction * maxHeight - h / 2f,
+                                    blockWidth = w,
+                                    blockHeight = h,
+                                    maxWidth = maxWidth,
+                                    maxHeight = maxHeight
                                 )
                             }
                         }
+                        IntOffset(topLeft.first.roundToInt(), topLeft.second.roundToInt())
                     },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

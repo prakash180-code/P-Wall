@@ -10,6 +10,7 @@ import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.utils.ClockTextFormatter
 import com.prakash.pwall.utils.clockTypeface
+import com.prakash.pwall.utils.clampBlockTopLeft
 import java.time.LocalDateTime
 import kotlin.math.max
 
@@ -220,7 +221,14 @@ object WallpaperRenderer {
             PositionPreset.CUSTOM -> {
                 val cx = settings.positionXFraction.coerceIn(0f, 1f) * canvasWidth
                 val cy = settings.positionYFraction.coerceIn(0f, 1f) * canvasHeight
-                Pair(cx - blockWidth / 2f, cy - blockHeight / 2f)
+                clampBlockTopLeft(
+                    x = cx - blockWidth / 2f,
+                    y = cy - blockHeight / 2f,
+                    blockWidth = blockWidth,
+                    blockHeight = blockHeight,
+                    maxWidth = canvasWidth,
+                    maxHeight = canvasHeight
+                )
             }
         }
     }
