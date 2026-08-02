@@ -1,6 +1,18 @@
 # P-Wall — Roadmap
 
-Development is done sprint-by-sprint. **Sprints 1–7 are complete.**
+Development is done prompt-by-prompt. **Sprints 1–7 and Prompt 2 are complete.**
+
+## Prompt 2 — Premium 3D Engine ✅ DONE
+- [x] Accelerometer + gyroscope driven movement (`service/motion/`)
+- [x] `ParallaxMath` pure-math module (smoothing filter, tilt mapping, clamping)
+- [x] Background movement within real pan overflow (all background modes)
+- [x] Foreground (clock) movement in the opposite direction (35% depth factor)
+- [x] Sensitivity / Strength / Motion smoothing settings + enable switch in
+      Customize ("3D Parallax" section)
+- [x] Battery-aware adaptive frame pacing (~30 fps moving / ~5 fps settling /
+      1 fps idle)
+- [x] Sensors only while visible; auto-disabled on unsupported devices
+- [x] 62/62 tests, 0 lint errors, on-device verified
 
 ## Sprint 1 — Project Foundation ✅ DONE
 - [x] Gradle project + wrapper + version catalog
@@ -67,7 +79,6 @@ Development is done sprint-by-sprint. **Sprints 1–7 are complete.**
 - [x] Foundation for premium modules (next: 3D parallax, depth engine)
 
 ## Future Ideas (architecture reserved, not implemented now)
-- Premium 3D parallax (motion-driven background) — plug in as a `Module`
 - AI depth engine + manual depth editor — new layers/effects
 - Production signing config (keystore) before publishing
 - Supabase licensing / activation

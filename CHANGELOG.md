@@ -2,6 +2,47 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.0.0] - Prompt 2 (Premium 3D Engine)
+
+### Added
+- 3D parallax: subtle motion-driven background + clock movement
+  - `service/motion/` package:
+    - `ParallaxMath`: pure math (EMA smoothing filter, tilt→amplitude mapping,
+      pan-room clamping) — JVM unit-tested, no Android types
+    - `MotionFrame`: normalized tilt snapshot (+ `NONE`)
+    - `MotionSource` interface, `SensorMotionProvider` (accelerometer primary +
+      gyroscope secondary, delivered on a dedicated `pwall-motion` thread,
+      `SENSOR_DELAY_GAME`, no wakelocks), `ParallaxController` (lifecycle,
+      active/moving/idle states, settings push)
+  - Engine integration: `WallpaperRenderEngine(motionSource)` injects motion
+    into the frame; `BackgroundLayer` shifts the image within its real pan
+    overflow (per background mode, clamped to room left after user pan);
+    `ClockBlockLayout` shifts the clock block in the opposite direction
+    (35% depth factor, re-clamped so it never leaves the screen)
+  - Battery-aware frame pacing in `PWallWallpaperService`: ~30 fps while
+    moving, ~5 fps while settling, 1 fps when idle; sensors registered only
+    while the wallpaper is visible; auto-disabled on devices without motion
+    sensors
+- 3D Parallax section in Customize: enable switch + Sensitivity / Strength /
+  Motion smoothing sliders (+ "not supported" notice on sensorless devices)
+- Settings: `parallaxEnabled` (default off), `parallaxSensitivity`,
+  `parallaxStrength`, `parallaxSmoothing` (default 0.5) persisted via DataStore
+- Unit tests: `ParallaxMathTest` (smoothing, mapping, clamps, pan room)
+
+### Verified
+- `assembleDebug` + `testDebugUnitTest` + `lintDebug`: 0 errors
+- Unit tests: 62/62 pass (45 baseline + 17 new)
+- Lint: 0 errors (15 warnings / 4 hints — same as baseline)
+- On-device functional pass (API 33):
+  - 3D Parallax section renders; switch + sliders work; values persist
+    (DataStore shows all four parallax keys)
+  - With parallax enabled and wallpaper visible: `pwall-motion` + `pwall-renderer`
+    threads run; accelerometer listener registered at `samplingPeriod=20000us`
+    with `WakeLockRefCount 0`
+  - Off-screen (app in foreground): sensor listener unregistered, render
+    thread stopped — battery-safe
+  - Settings reverted to default (parallax off) after testing; no crashes
+
 ## [1.0.0] - Sprint 7 (Modular Render Engine)
 
 ### Added

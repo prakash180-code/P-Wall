@@ -75,7 +75,11 @@ class SettingsRepository(
             backgroundZoom = floatPreference(BACKGROUND_ZOOM, 1f),
             backgroundRotationDegrees = floatPreference(BACKGROUND_ROTATION_DEGREES, 0f),
             backgroundTranslateXFraction = floatPreference(BACKGROUND_TRANSLATE_X_FRACTION, 0f),
-            backgroundTranslateYFraction = floatPreference(BACKGROUND_TRANSLATE_Y_FRACTION, 0f)
+            backgroundTranslateYFraction = floatPreference(BACKGROUND_TRANSLATE_Y_FRACTION, 0f),
+            parallaxEnabled = booleanPreference(PARALLAX_ENABLED, false),
+            parallaxSensitivity = floatPreference(PARALLAX_SENSITIVITY, 0.5f),
+            parallaxStrength = floatPreference(PARALLAX_STRENGTH, 0.5f),
+            parallaxSmoothing = floatPreference(PARALLAX_SMOOTHING, 0.5f)
         )
     }
 
@@ -103,6 +107,10 @@ class SettingsRepository(
         prefs[floatPreferencesKey(BACKGROUND_ROTATION_DEGREES)] = backgroundRotationDegrees
         prefs[floatPreferencesKey(BACKGROUND_TRANSLATE_X_FRACTION)] = backgroundTranslateXFraction
         prefs[floatPreferencesKey(BACKGROUND_TRANSLATE_Y_FRACTION)] = backgroundTranslateYFraction
+        prefs[booleanPreferencesKey(PARALLAX_ENABLED)] = parallaxEnabled
+        prefs[floatPreferencesKey(PARALLAX_SENSITIVITY)] = parallaxSensitivity
+        prefs[floatPreferencesKey(PARALLAX_STRENGTH)] = parallaxStrength
+        prefs[floatPreferencesKey(PARALLAX_SMOOTHING)] = parallaxSmoothing
     }
 
     private fun Preferences.stringPreference(key: String): String? = this[stringPreferencesKey(key)]
@@ -142,5 +150,9 @@ class SettingsRepository(
         const val BACKGROUND_ROTATION_DEGREES = "background_rotation_degrees"
         const val BACKGROUND_TRANSLATE_X_FRACTION = "background_translate_x_fraction"
         const val BACKGROUND_TRANSLATE_Y_FRACTION = "background_translate_y_fraction"
+        const val PARALLAX_ENABLED = "parallax_enabled"
+        const val PARALLAX_SENSITIVITY = "parallax_sensitivity"
+        const val PARALLAX_STRENGTH = "parallax_strength"
+        const val PARALLAX_SMOOTHING = "parallax_smoothing"
     }
 }

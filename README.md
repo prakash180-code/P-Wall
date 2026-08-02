@@ -23,7 +23,10 @@
   - Shadow (enable/disable, blur, offset, color)
   - Transparency
   - Position presets + drag & drop custom position
-  - Background mode: Fit / Fill / Stretch / Center Crop
+  - Background mode: Fit / Fill / Stretch / Center Crop / Custom
+  - 3D parallax: motion-driven background + clock movement with sensitivity,
+    strength, and smoothing controls (sensors auto-disabled on unsupported
+    devices; battery-aware adaptive frame rate)
 - Apply as live wallpaper via the Android Live Wallpaper picker
 - Dark / Light Material 3 theme (follows the system)
 - All settings persisted with DataStore Preferences (restored automatically)
@@ -43,15 +46,20 @@ app/src/main/java/com/prakash/pwall/
 │   ├── repository/            # SettingsRepository (DataStore)
 │   └── storage/               # ImageStore (image persistence + validation)
 ├── service/
-│   ├── PWallWallpaperService.kt  # Live Wallpaper Service (1s render loop)
+│   ├── PWallWallpaperService.kt  # Live Wallpaper Service (adaptive render loop)
 │   ├── WallpaperRenderer.kt      # Shared math + legacy drawing facade
-│   └── render/                   # Modular render engine
-│       ├── WallpaperRenderEngine.kt  # Compose layers + effects per frame
-│       ├── LayerSystem / EffectManager / ModuleSystem
-│       ├── Layer / Effect / Module    # Modular seams for future features
-│       ├── WallpaperCoreModule        # Default 5-layer stack
-│       ├── ClockBlockLayout           # Shared clock + date layout math
-│       └── layers/                    # Background / Clock / Date / Foreground / Overlay
+│   ├── render/                   # Modular render engine
+│   │   ├── WallpaperRenderEngine.kt  # Compose layers + effects per frame
+│   │   ├── LayerSystem / EffectManager / ModuleSystem
+│   │   ├── Layer / Effect / Module    # Modular seams for future features
+│   │   ├── WallpaperCoreModule        # Default 5-layer stack
+│   │   ├── ClockBlockLayout           # Shared clock + date layout math
+│   │   └── layers/                    # Background / Clock / Date / Foreground / Overlay
+│   └── motion/                   # 3D parallax engine
+│       ├── ParallaxController    # Lifecycle + settings + active/moving/idle
+│       ├── SensorMotionProvider  # Accelerometer + gyroscope listener thread
+│       ├── ParallaxMath          # Pure math (smoothing, tilt mapping, clamping)
+│       └── MotionFrame / MotionSource
 ├── ui/
 │   ├── home/                  # Home screen + ViewModel
 │   ├── preview/               # Preview screen + ViewModel

@@ -85,6 +85,20 @@ class CustomizeViewModel(
         )
     }
 
+    fun setParallaxEnabled(enabled: Boolean) = update { it.copy(parallaxEnabled = enabled) }
+
+    fun setParallaxSensitivity(value: Float) = update {
+        it.copy(parallaxSensitivity = value.coerceIn(0f, 1f))
+    }
+
+    fun setParallaxStrength(value: Float) = update {
+        it.copy(parallaxStrength = value.coerceIn(0f, 1f))
+    }
+
+    fun setParallaxSmoothing(value: Float) = update {
+        it.copy(parallaxSmoothing = value.coerceIn(0f, 1f))
+    }
+
     private fun update(transform: (WallpaperSettings) -> WallpaperSettings) {
         viewModelScope.launch { settingsRepository.updateSettings(transform) }
     }

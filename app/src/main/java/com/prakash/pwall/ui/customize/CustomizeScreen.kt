@@ -4,6 +4,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.app.WallpaperManager
+import android.hardware.Sensor
+import android.hardware.SensorManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -195,6 +197,7 @@ private fun CustomizeScreen(
                         onEditBackground = { showBackgroundEditor = true }
                     )
                 }
+                item { ParallaxSection(settings, viewModel) }
                 item {
                     Button(
                         onClick = { launchWallpaperPicker(context) },
@@ -813,6 +816,49 @@ private fun BackgroundSection(
             }
         }
     }
+}
+
+@Composable
+private fun ParallaxSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+    val context = LocalContext.current
+    val supported = remember(context) { hasMotionSensors(context) }
+    SectionCard("3D Parallax") {
+        SwitchRow("Enable 3D parallax", settings.parallaxEnabled, vm::setParallaxEnabled)
+        if (!supported) {
+            Text(
+                text = "Not supported on this device - no motion sensors found.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            SliderWithLabel(
+                label = "Sensitivity",
+                value = settings.parallaxSensitivity,
+                valueRange = 0f..1f,
+                displayValue = "${(settings.parallaxSensitivity * 100).roundToInt()}%",
+                onValueChange = vm::setParallaxSensitivity
+            )
+            SliderWithLabel(
+                label = "Strength",
+                value = settings.parallaxStrength,
+                valueRange = 0f..1f,
+                displayValue = "${(settings.parallaxStrength * 100).roundToInt()}%",
+                onValueChange = vm::setParallaxStrength
+            )
+            SliderWithLabel(
+                label = "Motion smoothing",
+                value = settings.parallaxSmoothing,
+                valueRange = 0f..1f,
+                displayValue = "${(settings.parallaxSmoothing * 100).roundToInt()}%",
+                onValueChange = vm::setParallaxSmoothing
+            )
+        }
+    }
+}
+
+private fun hasMotionSensors(context: Context): Boolean {
+    val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return false
+    return sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null
 }
 
 private fun formatExample(format: DateFormat): String {

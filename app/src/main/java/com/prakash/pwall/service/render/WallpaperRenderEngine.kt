@@ -1,12 +1,17 @@
 package com.prakash.pwall.service.render
 
 import android.graphics.Canvas
+import com.prakash.pwall.service.motion.MotionSource
 
 /**
  * Composes layers and effects into a single wallpaper frame. Install the core
  * module for the stock layers; premium features are added as extra modules.
+ * When a [MotionSource] is provided (3D parallax), the current tilt is injected
+ * into the frame before drawing so layers move without knowing about sensors.
  */
-class WallpaperRenderEngine {
+class WallpaperRenderEngine(
+    private val motionSource: MotionSource? = null
+) {
 
     private val layerSystem = LayerSystem()
     private val effectManager = EffectManager()
@@ -35,9 +40,12 @@ class WallpaperRenderEngine {
     fun removeEffect(id: String): Effect? = effectManager.remove(id)
 
     fun render(canvas: Canvas, frame: RenderFrame) {
+        val frameWithMotion = motionSource?.currentMotion()?.let { motion ->
+            frame.copy(motion = motion)
+        } ?: frame
         for (layer in layerSystem) {
-            layer.draw(canvas, frame)
-            effectManager.apply(canvas, frame, layer)
+            layer.draw(canvas, frameWithMotion)
+            effectManager.apply(canvas, frameWithMotion, layer)
         }
     }
 }
