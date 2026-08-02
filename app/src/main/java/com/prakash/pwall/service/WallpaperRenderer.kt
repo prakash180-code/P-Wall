@@ -1,29 +1,28 @@
 package com.prakash.pwall.service
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Matrix
-import android.graphics.Paint
-import android.graphics.Typeface
 import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.WallpaperSettings
-import com.prakash.pwall.utils.ClockTextFormatter
-import com.prakash.pwall.utils.clockTypeface
+import com.prakash.pwall.service.render.ClockBlockLayout
+import com.prakash.pwall.service.render.RenderFrame
+import com.prakash.pwall.service.render.layers.BackgroundLayer
+import com.prakash.pwall.service.render.layers.ClockLayer
+import com.prakash.pwall.service.render.layers.DateLayer
 import com.prakash.pwall.utils.clampBlockTopLeft
 import java.time.LocalDateTime
 import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Pure Android-View drawing of the wallpaper frame. Both the live wallpaper
- * engine and (conceptually) any future engine reuse this so the preview and
- * the real wallpaper always match.
+ * Pure Android-View drawing of the wallpaper frame. Holds the shared math used
+ * by both the live wallpaper engine and the Compose preview so they always
+ * match, and delegates the actual drawing to the modular render engine's
+ * layers. Both the live wallpaper engine and (conceptually) any future engine
+ * reuse this so the preview and the real wallpaper always match.
  */
 object WallpaperRenderer {
-
-    /** Placeholder color used when no image has been selected. */
-    private const val PLACEHOLDER_COLOR = 0xFF1C1C2A.toInt()
 
     private const val EDGE_PADDING_PX = 28f
 
@@ -189,25 +188,10 @@ object WallpaperRenderer {
         bitmap: android.graphics.Bitmap?,
         settings: WallpaperSettings
     ) {
-        val w = canvas.width
-        val h = canvas.height
-        if (bitmap == null) {
-            canvas.drawColor(PLACEHOLDER_COLOR)
-            return
-        }
-        val matrix = backgroundMatrix(
-            bitmapWidth = bitmap.width,
-            bitmapHeight = bitmap.height,
-            targetW = w,
-            targetH = h,
-            mode = settings.backgroundMode,
-            zoom = settings.backgroundZoom,
-            rotationDegrees = settings.backgroundRotationDegrees,
-            translateXFraction = settings.backgroundTranslateXFraction,
-            translateYFraction = settings.backgroundTranslateYFraction
+        BackgroundLayer().draw(
+            canvas,
+            RenderFrame(settings = settings, backgroundBitmap = bitmap)
         )
-        canvas.drawColor(Color.BLACK)
-        canvas.drawBitmap(bitmap, matrix, null)
     }
 
     /**
@@ -223,69 +207,13 @@ object WallpaperRenderer {
         now: LocalDateTime = LocalDateTime.now(),
         displayDensity: Float
     ) {
-        val timeText = ClockTextFormatter.formatTime(now, settings.timeFormat, settings.showSeconds)
-        val dateText = ClockTextFormatter.formatDate(now, settings.dateFormat)
-
-        val typeface: Typeface = clockTypeface(settings.clockFont, settings.clockBold, settings.clockItalic)
-
-        val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.typeface = typeface
-            textSize = displayDensity * settings.clockFontSizeSp
-            color = colorWithTransparency(settings.clockColor, settings.transparency)
-            if (settings.shadowEnabled) {
-                setShadowLayer(
-                    settings.shadowBlurRadius,
-                    settings.shadowOffsetX,
-                    settings.shadowOffsetY,
-                    settings.shadowColor.toInt()
-                )
-            }
-        }
-
-        val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.typeface = typeface
-            textSize = timePaint.textSize * 0.36f
-            color = colorWithTransparency(settings.dateColor, settings.transparency)
-            if (settings.shadowEnabled) {
-                setShadowLayer(
-                    settings.shadowBlurRadius,
-                    settings.shadowOffsetX,
-                    settings.shadowOffsetY,
-                    settings.shadowColor.toInt()
-                )
-            }
-        }
-
-        val width = canvas.width.toFloat()
-        val height = canvas.height.toFloat()
-
-        val timeWidth = timePaint.measureText(timeText)
-        val dateWidth = datePaint.measureText(dateText)
-        val blockWidth = max(timeWidth, dateWidth)
-
-        val timeMetrics = timePaint.fontMetrics
-        val timeHeight = timeMetrics.descent - timeMetrics.ascent
-        val gap = timeHeight * 0.18f
-        val dateMetrics = datePaint.fontMetrics
-        val dateHeight = dateMetrics.descent - dateMetrics.ascent
-        val blockHeight = timeHeight + gap + dateHeight
-
-        val (x, y) = blockTopLeft(
-            canvasWidth = width,
-            canvasHeight = height,
-            blockWidth = blockWidth,
-            blockHeight = blockHeight,
-            settings = settings
+        val frame = RenderFrame(
+            settings = settings,
+            now = now,
+            displayDensity = displayDensity
         )
-
-        timePaint.textAlign = Paint.Align.LEFT
-        datePaint.textAlign = Paint.Align.LEFT
-
-        val timeBaseline = y - timeMetrics.ascent
-        canvas.drawText(timeText, x, timeBaseline, timePaint)
-
-        val dateBaseline = timeBaseline + timeHeight + gap - dateMetrics.ascent
-        canvas.drawText(dateText, x, dateBaseline, datePaint)
+        ClockLayer().draw(canvas, frame)
+        DateLayer().draw(canvas, frame)
     }
 
     /**
@@ -326,7 +254,7 @@ object WallpaperRenderer {
         }
     }
 
-    private fun colorWithTransparency(argbLong: Long, transparencyPercent: Int): Int {
+    internal fun colorWithTransparency(argbLong: Long, transparencyPercent: Int): Int {
         val argb = argbLong.toInt()
         val alpha = (argb ushr 24) and 0xFF
         val newAlpha = (alpha * transparencyPercent.coerceIn(0, 100)) / 100

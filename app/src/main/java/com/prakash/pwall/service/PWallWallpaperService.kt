@@ -6,6 +6,9 @@ import android.view.SurfaceHolder
 import com.prakash.pwall.PWallApplication
 import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.di.AppContainer
+import com.prakash.pwall.service.render.RenderFrame
+import com.prakash.pwall.service.render.WallpaperCoreModule
+import com.prakash.pwall.service.render.WallpaperRenderEngine
 import com.prakash.pwall.utils.BitmapCache
 import com.prakash.pwall.utils.ImageLoader
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +46,12 @@ class PWallWallpaperService : WallpaperService() {
 
         private var decodeJob: Job? = null
         private var renderThread: Thread? = null
+
+        private val renderEngine: WallpaperRenderEngine by lazy {
+            WallpaperRenderEngine().apply {
+                installModule(WallpaperCoreModule())
+            }
+        }
 
         override fun onCreate(holder: SurfaceHolder) {
             super.onCreate(holder)
@@ -159,11 +168,13 @@ class PWallWallpaperService : WallpaperService() {
             // here is transient and must not kill the render thread.
             val canvas = runCatching { holder.lockCanvas() }.getOrNull() ?: return
             try {
-                WallpaperRenderer.drawBackground(canvas, selectedBitmap, settings)
-                WallpaperRenderer.drawClock(
-                    canvas = canvas,
-                    settings = settings,
-                    displayDensity = resources.displayMetrics.scaledDensity
+                renderEngine.render(
+                    canvas,
+                    RenderFrame(
+                        settings = settings,
+                        backgroundBitmap = selectedBitmap,
+                        displayDensity = resources.displayMetrics.scaledDensity
+                    )
                 )
             } catch (_: Exception) {
                 // Best-effort frame: ignore transient draw errors.
