@@ -2,6 +2,79 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.0.0] - Sprint 7 (Modular Render Engine)
+
+### Added
+- Modular wallpaper render engine (`service/render/`)
+  - `WallpaperRenderEngine`: composes layers + effects into a single frame
+  - `LayerSystem`: ordered z-stack (later layers draw on top)
+  - `EffectManager`: post-layer effects (no-op by default — seam for premium
+    features like particles / vignette / weather)
+  - `ModuleSystem`: self-contained feature bundles; duplicate ids rejected
+  - `RenderFrame`: immutable per-frame context (settings, bitmap, time,
+    density, dimensions); clock block resolved lazily once per frame
+  - `Layer` / `Effect` / `Module` interfaces
+- Five default layers registered by `WallpaperCoreModule` (z-order):
+  `BackgroundLayer`, `ClockLayer`, `DateLayer`, `ForegroundLayer` (no-op),
+  `OverlayLayer` (no-op)
+- `ClockBlockLayout`: shared clock + date layout math (block positioned as a
+  single unit, time and date draw at shared baselines)
+- Unit tests: `LayerSystemTest`, `EffectManagerTest`, `ModuleSystemTest`,
+  `WallpaperRenderEngineTest`
+
+### Changed
+- `WallpaperRenderer` keeps its full math API (used by preview + tests) but
+  now delegates drawing to the engine's layers
+- `PWallWallpaperService` renders via `engine.render(canvas, frame)`
+
+### Verified
+- `clean assembleDebug` + `testDebugUnitTest` + `lintDebug`: 0 errors
+- Unit tests: 45/45 pass
+- On-device functional pass (API 33):
+  - App launches; Home live-preview clock/date renders
+  - Customize screen renders all sections; setting changes apply live
+  - Settings persist across process restart (DataStore)
+  - Apply Live Wallpaper → service active (`mWallpaperComponent` set)
+  - `pwall-renderer` thread runs while the wallpaper is visible
+  - No crashes / ANRs
+- No UI or behavior changes (refactor only)
+
+## [1.0.0] - Sprint 6 (Custom Background Mode)
+
+### Added
+- Custom background mode: manual zoom (1–8×), rotation (±45°), and pan in a
+  full-screen editor
+  - `BackgroundMode.CUSTOM` + persisted transform settings (zoom, rotation,
+    translate fractions)
+  - `FullScreenBackgroundEditor`: pinch/twist/drag gestures + Zoom/Rotate
+    sliders + Cancel/Done
+  - `WallpaperRenderer.customPanBounds` / `customBackgroundMatrix` shared by
+    preview and live wallpaper
+- Unit tests for custom pan bounds
+
+### Verified
+- 30/30 tests, 0 lint errors, on-device gesture + persistence verified
+
+## [1.0.0] - Sprint 5 (Full-Screen Position Editor)
+
+### Added
+- Clock position editing moved to a full-screen editor with drag + tap
+  positioning and Cancel/Done confirmation
+- "Edit on full screen" entry from the Customize screen
+
+### Verified
+- 26/26 tests, on-device verified
+
+## [1.0.0] - Sprint 4 (Clock Position Fixes)
+
+### Changed
+- Drag-to-position clamped so the clock never leaves the screen
+  (`clampBlockTopLeft` shared by preview + engine)
+- Tap-to-position support in the preview
+
+### Verified
+- 26/26 tests, on-device verified
+
 ## [1.0.0] - Sprint 3 (Production Ready)
 
 ### Added

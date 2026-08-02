@@ -173,7 +173,9 @@ class PWallWallpaperService : WallpaperService() {
                     RenderFrame(
                         settings = settings,
                         backgroundBitmap = selectedBitmap,
-                        displayDensity = resources.displayMetrics.scaledDensity
+                        displayDensity = resources.displayMetrics.scaledDensity,
+                        width = canvas.width,
+                        height = canvas.height
                     )
                 )
             } catch (_: Exception) {

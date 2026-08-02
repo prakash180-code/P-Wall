@@ -19,8 +19,7 @@ import kotlin.math.max
  * Pure Android-View drawing of the wallpaper frame. Holds the shared math used
  * by both the live wallpaper engine and the Compose preview so they always
  * match, and delegates the actual drawing to the modular render engine's
- * layers. Both the live wallpaper engine and (conceptually) any future engine
- * reuse this so the preview and the real wallpaper always match.
+ * layers.
  */
 object WallpaperRenderer {
 
@@ -190,7 +189,12 @@ object WallpaperRenderer {
     ) {
         BackgroundLayer().draw(
             canvas,
-            RenderFrame(settings = settings, backgroundBitmap = bitmap)
+            RenderFrame(
+                settings = settings,
+                backgroundBitmap = bitmap,
+                width = canvas.width,
+                height = canvas.height
+            )
         )
     }
 
@@ -210,7 +214,9 @@ object WallpaperRenderer {
         val frame = RenderFrame(
             settings = settings,
             now = now,
-            displayDensity = displayDensity
+            displayDensity = displayDensity,
+            width = canvas.width,
+            height = canvas.height
         )
         ClockLayer().draw(canvas, frame)
         DateLayer().draw(canvas, frame)

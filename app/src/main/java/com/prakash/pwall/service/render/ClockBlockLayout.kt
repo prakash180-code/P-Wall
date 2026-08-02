@@ -4,23 +4,73 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.service.WallpaperRenderer
+import com.prakash.pwall.utils.ClockTextFormatter
 import com.prakash.pwall.utils.clockTypeface
+import java.time.LocalDateTime
 import kotlin.math.max
 
 /**
- * Shared layout math for the clock + date block. Both [ClockLayer] and
- * [DateLayer] call [compute] with identical inputs, so the time and date land
- * in exactly the same place the legacy single-block renderer produced. The
- * block is positioned as one unit and the two layers each draw their own text
- * at the resulting baselines.
+ * Shared layout math for the clock + date block. The block is positioned as a
+ * single unit so the time and date land in exactly the same place the legacy
+ * single-block renderer produced. [ClockLayer] and [DateLayer] both draw from
+ * the same resolved [Block] (computed once per frame via [RenderFrame.clockBlock]),
+ * so output is byte-for-byte identical to the legacy renderer with no per-layer
+ * duplication.
  */
 object ClockBlockLayout {
 
+    /** Positions within the canvas for the two text baselines. */
     data class Layout(
         val x: Float,
         val timeBaseline: Float,
         val dateBaseline: Float
     )
+
+    /** Fully resolved clock block: formatted texts, paints, and positions. */
+    data class Block(
+        val timeText: String,
+        val dateText: String,
+        val timePaint: Paint,
+        val datePaint: Paint,
+        val layout: Layout
+    )
+
+    /**
+     * Resolves everything both clock layers need for one frame. Called once per
+     * frame (see [RenderFrame.clockBlock]) so paint allocations match the legacy
+     * renderer's two Paints per frame.
+     */
+    fun resolve(
+        canvasWidth: Float,
+        canvasHeight: Float,
+        settings: WallpaperSettings,
+        displayDensity: Float,
+        now: LocalDateTime
+    ): Block {
+        val timeText = ClockTextFormatter.formatTime(
+            now, settings.timeFormat, settings.showSeconds
+        )
+        val dateText = ClockTextFormatter.formatDate(now, settings.dateFormat)
+
+        val timePaint = timePaint(settings, displayDensity)
+        val datePaint = datePaint(settings, displayDensity)
+        val layout = compute(
+            canvasWidth = canvasWidth,
+            canvasHeight = canvasHeight,
+            timeText = timeText,
+            dateText = dateText,
+            timePaint = timePaint,
+            datePaint = datePaint,
+            settings = settings
+        )
+        return Block(
+            timeText = timeText,
+            dateText = dateText,
+            timePaint = timePaint,
+            datePaint = datePaint,
+            layout = layout
+        )
+    }
 
     fun timePaint(settings: WallpaperSettings, displayDensity: Float): Paint =
         clockPaint(
@@ -61,7 +111,7 @@ object ClockBlockLayout {
         }
     }
 
-    fun compute(
+    private fun compute(
         canvasWidth: Float,
         canvasHeight: Float,
         timeText: String,

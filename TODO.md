@@ -1,6 +1,6 @@
 # P-Wall — Roadmap
 
-Development is done sprint-by-sprint. **Sprints 1–3 are complete.**
+Development is done sprint-by-sprint. **Sprints 1–7 are complete.**
 
 ## Sprint 1 — Project Foundation ✅ DONE
 - [x] Gradle project + wrapper + version catalog
@@ -42,11 +42,36 @@ Development is done sprint-by-sprint. **Sprints 1–3 are complete.**
 - [x] Release APK build (R8 + shrinkResources, 2.1 MB)
 - [x] Final documentation
 
+## Sprint 4 — Clock Position Fix ✅ DONE
+- [x] Drag-to-position clamped so the clock stays on-screen (`clampBlockTopLeft`)
+- [x] Tap-to-position in the preview
+- [x] 26/26 tests, on-device verified
+
+## Sprint 5 — Full-Screen Position Editor ✅ DONE
+- [x] Clock position editing on a full-screen preview with drag + tap + Cancel/Done
+- [x] 26/26 tests, on-device verified
+
+## Sprint 6 — Custom Background Mode ✅ DONE
+- [x] `BackgroundMode.CUSTOM` (zoom 1–8×, rotation ±45°, pan)
+- [x] Full-screen editor with gestures + sliders
+- [x] Shared transform math between preview and live wallpaper
+- [x] 30/30 tests, on-device verified
+
+## Sprint 7 — Modular Render Engine ✅ DONE
+- [x] `WallpaperRenderEngine` (compose layers + effects + render)
+- [x] Layer system (z-ordered), module system (duplicate rejection),
+      effect manager (no-op by default)
+- [x] Core layers: Background / Clock / Date / Foreground / Overlay
+- [x] `WallpaperRenderer` math API preserved (preview + tests untouched)
+- [x] No UI or behavior changes; 45/45 tests; on-device verified
+- [x] Foundation for premium modules (next: 3D parallax, depth engine)
+
 ## Future Ideas (architecture reserved, not implemented now)
+- Premium 3D parallax (motion-driven background) — plug in as a `Module`
+- AI depth engine + manual depth editor — new layers/effects
 - Production signing config (keystore) before publishing
 - Supabase licensing / activation
-- Premium features
-- Weather / battery / calendar overlays
+- Premium features (weather / battery / calendar overlays) — new layers/effects
 - Multiple clocks, analog / neon / flip clock
 - Animated / GIF / video wallpapers
 - Theme packs

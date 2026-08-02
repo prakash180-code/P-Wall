@@ -42,7 +42,16 @@ app/src/main/java/com/prakash/pwall/
 │   ├── model/                 # WallpaperSettings + enums
 │   ├── repository/            # SettingsRepository (DataStore)
 │   └── storage/               # ImageStore (image persistence + validation)
-├── service/                   # Live Wallpaper Service + renderer
+├── service/
+│   ├── PWallWallpaperService.kt  # Live Wallpaper Service (1s render loop)
+│   ├── WallpaperRenderer.kt      # Shared math + legacy drawing facade
+│   └── render/                   # Modular render engine
+│       ├── WallpaperRenderEngine.kt  # Compose layers + effects per frame
+│       ├── LayerSystem / EffectManager / ModuleSystem
+│       ├── Layer / Effect / Module    # Modular seams for future features
+│       ├── WallpaperCoreModule        # Default 5-layer stack
+│       ├── ClockBlockLayout           # Shared clock + date layout math
+│       └── layers/                    # Background / Clock / Date / Foreground / Overlay
 ├── ui/
 │   ├── home/                  # Home screen + ViewModel
 │   ├── preview/               # Preview screen + ViewModel
@@ -51,6 +60,20 @@ app/src/main/java/com/prakash/pwall/
 ├── utils/                     # ImageLoader, BitmapCache, formatters
 └── theme/                     # Material 3 theme
 ```
+
+## Modular Render Engine
+
+Rendering is split into a small engine that composes **layers** (drawable
+units), **effects** (post-layer processing) and **modules** (feature bundles):
+
+- `WallpaperRenderEngine.render(canvas, frame)` draws each registered layer in
+  z-order and applies effects after each one.
+- The core module ships the default stack: background → clock → date →
+  foreground → overlay.
+- `WallpaperRenderer` keeps the shared transform/positioning math used by both
+  the Compose preview and the engine, so preview and live wallpaper always match.
+- Future premium features (3D parallax, depth engine, weather/battery overlays)
+  plug in as new modules/layers/effects without touching the core.
 
 ## Tech Stack
 
