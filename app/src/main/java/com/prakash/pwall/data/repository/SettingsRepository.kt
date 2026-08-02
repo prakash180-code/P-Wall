@@ -71,7 +71,11 @@ class SettingsRepository(
             positionXFraction = floatPreference(POSITION_X_FRACTION, 0.5f),
             positionYFraction = floatPreference(POSITION_Y_FRACTION, 0.88f),
             backgroundMode = BackgroundMode.entries.firstOrNull { it.name == stringPreference(BACKGROUND_MODE) }
-                ?: WallpaperSettings().backgroundMode
+                ?: WallpaperSettings().backgroundMode,
+            backgroundZoom = floatPreference(BACKGROUND_ZOOM, 1f),
+            backgroundRotationDegrees = floatPreference(BACKGROUND_ROTATION_DEGREES, 0f),
+            backgroundTranslateXFraction = floatPreference(BACKGROUND_TRANSLATE_X_FRACTION, 0f),
+            backgroundTranslateYFraction = floatPreference(BACKGROUND_TRANSLATE_Y_FRACTION, 0f)
         )
     }
 
@@ -95,6 +99,10 @@ class SettingsRepository(
         prefs[floatPreferencesKey(POSITION_X_FRACTION)] = positionXFraction
         prefs[floatPreferencesKey(POSITION_Y_FRACTION)] = positionYFraction
         prefs[stringPreferencesKey(BACKGROUND_MODE)] = backgroundMode.name
+        prefs[floatPreferencesKey(BACKGROUND_ZOOM)] = backgroundZoom
+        prefs[floatPreferencesKey(BACKGROUND_ROTATION_DEGREES)] = backgroundRotationDegrees
+        prefs[floatPreferencesKey(BACKGROUND_TRANSLATE_X_FRACTION)] = backgroundTranslateXFraction
+        prefs[floatPreferencesKey(BACKGROUND_TRANSLATE_Y_FRACTION)] = backgroundTranslateYFraction
     }
 
     private fun Preferences.stringPreference(key: String): String? = this[stringPreferencesKey(key)]
@@ -130,5 +138,9 @@ class SettingsRepository(
         const val POSITION_X_FRACTION = "position_x_fraction"
         const val POSITION_Y_FRACTION = "position_y_fraction"
         const val BACKGROUND_MODE = "background_mode"
+        const val BACKGROUND_ZOOM = "background_zoom"
+        const val BACKGROUND_ROTATION_DEGREES = "background_rotation_degrees"
+        const val BACKGROUND_TRANSLATE_X_FRACTION = "background_translate_x_fraction"
+        const val BACKGROUND_TRANSLATE_Y_FRACTION = "background_translate_y_fraction"
     }
 }

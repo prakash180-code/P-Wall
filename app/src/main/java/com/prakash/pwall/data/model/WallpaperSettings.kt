@@ -33,7 +33,8 @@ enum class BackgroundMode(val displayName: String) {
     FIT("Fit"),
     FILL("Fill"),
     STRETCH("Stretch"),
-    CENTER_CROP("Center Crop")
+    CENTER_CROP("Center Crop"),
+    CUSTOM("Custom")
 }
 
 /** System font families exposed for the clock. */
@@ -70,7 +71,11 @@ data class WallpaperSettings(
     val position: PositionPreset = PositionPreset.BOTTOM_CENTER,
     val positionXFraction: Float = 0.5f,
     val positionYFraction: Float = 0.88f,
-    val backgroundMode: BackgroundMode = BackgroundMode.FIT
+    val backgroundMode: BackgroundMode = BackgroundMode.FIT,
+    val backgroundZoom: Float = 1f,
+    val backgroundRotationDegrees: Float = 0f,
+    val backgroundTranslateXFraction: Float = 0f,
+    val backgroundTranslateYFraction: Float = 0f
 ) {
     val clockColorValue: Color
         get() = Color(clockColor)

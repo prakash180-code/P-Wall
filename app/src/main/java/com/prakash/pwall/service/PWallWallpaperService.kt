@@ -159,7 +159,7 @@ class PWallWallpaperService : WallpaperService() {
             // here is transient and must not kill the render thread.
             val canvas = runCatching { holder.lockCanvas() }.getOrNull() ?: return
             try {
-                WallpaperRenderer.drawBackground(canvas, selectedBitmap, settings.backgroundMode)
+                WallpaperRenderer.drawBackground(canvas, selectedBitmap, settings)
                 WallpaperRenderer.drawClock(
                     canvas = canvas,
                     settings = settings,

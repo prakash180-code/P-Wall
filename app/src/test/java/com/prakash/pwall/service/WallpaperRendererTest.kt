@@ -40,6 +40,52 @@ class WallpaperRendererTest {
     }
 
     @Test
+    fun customPanBounds_zeroRotation_atCoverScale_onlyOverflowAxisHasRoom() {
+        // 200x100 image in a 100x100 target at zoom 1: cover scale = 1.0,
+        // so the scaled image is 200x100 -> 50px horizontal overflow each
+        // side, none vertically.
+        val (maxPanX, maxPanY) = WallpaperRenderer.customPanBounds(
+            200, 100, 100, 100, zoom = 1f, rotationDegrees = 0f
+        )
+        assertEquals(50f, maxPanX, 0.001f)
+        assertEquals(0f, maxPanY, 0.001f)
+    }
+
+    @Test
+    fun customPanBounds_zoomTwo_addsPanRoom() {
+        // 200x100 image, 100x100 target, zoom 2: cover scale = 1.0, scaled to
+        // 400x200, centered => 150px overflow horizontally, 50px vertically.
+        val (maxPanX, maxPanY) = WallpaperRenderer.customPanBounds(
+            200, 100, 100, 100, zoom = 2f, rotationDegrees = 0f
+        )
+        assertEquals(150f, maxPanX, 0.001f)
+        assertEquals(50f, maxPanY, 0.001f)
+    }
+
+    @Test
+    fun customPanBounds_zoomBelowOneIsClampedToCover() {
+        // zoom 0.5 still clamps to cover (scale >= 1), matching zoom 1 bounds.
+        val (maxPanX, maxPanY) = WallpaperRenderer.customPanBounds(
+            200, 100, 100, 100, zoom = 0.5f, rotationDegrees = 0f
+        )
+        assertEquals(50f, maxPanX, 0.001f)
+        assertEquals(0f, maxPanY, 0.001f)
+    }
+
+    @Test
+    fun customPanBounds_rotationNeverShrinksRoom() {
+        val unrotated = WallpaperRenderer.customPanBounds(
+            200, 100, 100, 100, zoom = 2f, rotationDegrees = 0f
+        )
+        val rotated = WallpaperRenderer.customPanBounds(
+            200, 100, 100, 100, zoom = 2f, rotationDegrees = 30f
+        )
+        // Rotating widens the bounding box, so pan room only grows.
+        assert(rotated.first >= unrotated.first)
+        assert(rotated.second >= unrotated.second)
+    }
+
+    @Test
     fun blockTopLeft_bottomCenterIsCenteredHorizontally() {
         val (x, y) = WallpaperRenderer.blockTopLeft(
             canvasWidth = 1000f,

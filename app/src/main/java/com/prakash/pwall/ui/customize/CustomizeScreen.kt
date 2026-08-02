@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -47,8 +49,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -74,8 +77,10 @@ import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.di.LocalAppContainer
 import com.prakash.pwall.service.PWallWallpaperService
+import com.prakash.pwall.service.WallpaperRenderer
 import com.prakash.pwall.ui.components.ColorPicker
 import com.prakash.pwall.ui.components.WallpaperPreview
+import com.prakash.pwall.utils.ImageLoader
 import kotlin.math.roundToInt
 
 /** Builds the intent that opens the system live wallpaper picker. */
@@ -146,6 +151,7 @@ private fun CustomizeScreen(
         }
     ) { innerPadding ->
         var showPositionEditor by remember { mutableStateOf(false) }
+        var showBackgroundEditor by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -182,7 +188,13 @@ private fun CustomizeScreen(
                         onEditPosition = { showPositionEditor = true }
                     )
                 }
-                item { BackgroundSection(settings, viewModel) }
+                item {
+                    BackgroundSection(
+                        settings = settings,
+                        vm = viewModel,
+                        onEditBackground = { showBackgroundEditor = true }
+                    )
+                }
                 item {
                     Button(
                         onClick = { launchWallpaperPicker(context) },
@@ -204,6 +216,20 @@ private fun CustomizeScreen(
                     showPositionEditor = false
                 },
                 onDismiss = { showPositionEditor = false }
+            )
+        }
+
+        if (showBackgroundEditor) {
+            FullScreenBackgroundEditor(
+                settings = settings,
+                onDone = { zoom, rotation, translateX, translateY ->
+                    viewModel.setBackgroundMode(BackgroundMode.CUSTOM)
+                    viewModel.setBackgroundZoom(zoom)
+                    viewModel.setBackgroundRotation(rotation)
+                    viewModel.setBackgroundTranslation(translateX, translateY)
+                    showBackgroundEditor = false
+                },
+                onDismiss = { showBackgroundEditor = false }
             )
         }
     }
@@ -313,6 +339,153 @@ private fun FullScreenPositionEditor(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Done")
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Full-screen editor for the custom background transform. Shows the wallpaper
+ * at full size (like the live preview) so zoom/rotate/pan edits render 1:1.
+ * Pinch to zoom, drag with one finger to pan, twist two fingers to rotate, or
+ * use the sliders; "Done" commits to CUSTOM mode.
+ */
+@Composable
+private fun FullScreenBackgroundEditor(
+    settings: WallpaperSettings,
+    onDone: (zoom: Float, rotationDegrees: Float, translateX: Float, translateY: Float) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var zoom by remember { mutableStateOf(settings.backgroundZoom) }
+    var rotationDegrees by remember { mutableStateOf(settings.backgroundRotationDegrees) }
+    var translateX by remember { mutableStateOf(settings.backgroundTranslateXFraction) }
+    var translateY by remember { mutableStateOf(settings.backgroundTranslateYFraction) }
+    var editorSize by remember { mutableStateOf(IntSize.Zero) }
+    val image by produceState<ImageBitmap?>(
+        initialValue = null,
+        settings.selectedImagePath
+    ) {
+        value = ImageLoader.load(settings.selectedImagePath)
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onSizeChanged { editorSize = it }
+                    .pointerInput(image) {
+                        detectTransformGestures { _, pan, gestureZoom, gestureRotation ->
+                            zoom = (zoom * gestureZoom).coerceIn(1f, 8f)
+                            rotationDegrees =
+                                (rotationDegrees + Math.toDegrees(gestureRotation.toDouble()).toFloat())
+                                    .coerceIn(-45f, 45f)
+                            if (editorSize.width > 0 && editorSize.height > 0 && image != null) {
+                                val (maxPanX, maxPanY) = WallpaperRenderer.customPanBounds(
+                                    bitmapWidth = image!!.width,
+                                    bitmapHeight = image!!.height,
+                                    targetW = editorSize.width,
+                                    targetH = editorSize.height,
+                                    zoom = zoom,
+                                    rotationDegrees = rotationDegrees
+                                )
+                                if (maxPanX > 0f) {
+                                    translateX = (translateX + pan.x / maxPanX).coerceIn(-1f, 1f)
+                                }
+                                if (maxPanY > 0f) {
+                                    translateY = (translateY + pan.y / maxPanY).coerceIn(-1f, 1f)
+                                }
+                            }
+                        }
+                    }
+            ) {
+                WallpaperPreview(
+                    settings = settings.copy(
+                        backgroundMode = BackgroundMode.CUSTOM,
+                        backgroundZoom = zoom,
+                        backgroundRotationDegrees = rotationDegrees,
+                        backgroundTranslateXFraction = translateX,
+                        backgroundTranslateYFraction = translateY
+                    ),
+                    modifier = Modifier.fillMaxSize(),
+                    showHint = false
+                )
+                Text(
+                    text = "Pinch to zoom - drag to move - twist to rotate",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Zoom ${"%.1f".format(zoom)}x",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White,
+                        modifier = Modifier.width(90.dp)
+                    )
+                    Slider(
+                        value = zoom,
+                        onValueChange = { zoom = it.coerceIn(1f, 8f) },
+                        valueRange = 1f..8f,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Rotate ${rotationDegrees.roundToInt()}°",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White,
+                        modifier = Modifier.width(90.dp)
+                    )
+                    Slider(
+                        value = rotationDegrees,
+                        onValueChange = { rotationDegrees = it.coerceIn(-45f, 45f) },
+                        valueRange = -45f..45f,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            onDone(zoom, rotationDegrees, translateX, translateY)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Done")
+                    }
                 }
             }
         }
@@ -611,11 +784,34 @@ private fun PositionSection(
 }
 
 @Composable
-private fun BackgroundSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+private fun BackgroundSection(
+    settings: WallpaperSettings,
+    vm: CustomizeViewModel,
+    onEditBackground: () -> Unit
+) {
     SectionCard("Background") {
         ChipRow(
             options = BackgroundMode.entries.map { it.displayName to (it == settings.backgroundMode) }
-        ) { index -> vm.setBackgroundMode(BackgroundMode.entries[index]) }
+        ) { index ->
+            vm.setBackgroundMode(BackgroundMode.entries[index])
+            if (BackgroundMode.entries[index] == BackgroundMode.CUSTOM) {
+                onEditBackground()
+            }
+        }
+        if (settings.backgroundMode == BackgroundMode.CUSTOM) {
+            Text(
+                text = "Zoom, move and rotate the photo on a full-screen preview.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onEditBackground,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Edit on full screen")
+            }
+        }
     }
 }
 

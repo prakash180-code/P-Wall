@@ -12,6 +12,7 @@ import com.prakash.pwall.utils.ClockTextFormatter
 import com.prakash.pwall.utils.clockTypeface
 import com.prakash.pwall.utils.clampBlockTopLeft
 import java.time.LocalDateTime
+import kotlin.math.abs
 import kotlin.math.max
 
 /**
@@ -35,6 +36,70 @@ object WallpaperRenderer {
     )
 
     /**
+     * Maximum pan offsets (px) available in the custom background mode, based
+     * on the scaled+rotated image's bounding box. [translateFraction] is a
+     * normalized [-1, 1] multiplier over these bounds.
+     */
+    fun customPanBounds(
+        bitmapWidth: Int,
+        bitmapHeight: Int,
+        targetW: Int,
+        targetH: Int,
+        zoom: Float,
+        rotationDegrees: Float
+    ): Pair<Float, Float> {
+        val cover = maxOf(
+            targetW.toFloat() / bitmapWidth,
+            targetH.toFloat() / bitmapHeight
+        )
+        val scale = cover * zoom.coerceAtLeast(1f)
+        val radians = Math.toRadians(rotationDegrees.toDouble())
+        val cos = abs(Math.cos(radians)).toFloat()
+        val sin = abs(Math.sin(radians)).toFloat()
+        val halfW = (bitmapWidth * scale * cos + bitmapHeight * scale * sin) / 2f
+        val halfH = (bitmapWidth * scale * sin + bitmapHeight * scale * cos) / 2f
+        val maxPanX = max(0f, halfW - targetW / 2f)
+        val maxPanY = max(0f, halfH - targetH / 2f)
+        return maxPanX to maxPanY
+    }
+
+    /**
+     * Builds the [Matrix] for the custom background mode: cover-scale the
+     * source, then zoom, rotate around the center, and pan within the bounds
+     * computed by [customPanBounds]. Mirrors the Compose preview exactly.
+     */
+    fun customBackgroundMatrix(
+        bitmapWidth: Int,
+        bitmapHeight: Int,
+        targetW: Int,
+        targetH: Int,
+        zoom: Float,
+        rotationDegrees: Float,
+        translateXFraction: Float,
+        translateYFraction: Float
+    ): Matrix {
+        val cover = maxOf(
+            targetW.toFloat() / bitmapWidth,
+            targetH.toFloat() / bitmapHeight
+        )
+        val scale = cover * zoom.coerceAtLeast(1f)
+        val (maxPanX, maxPanY) = customPanBounds(
+            bitmapWidth, bitmapHeight, targetW, targetH, zoom, rotationDegrees
+        )
+        val panX = translateXFraction.coerceIn(-1f, 1f) * maxPanX
+        val panY = translateYFraction.coerceIn(-1f, 1f) * maxPanY
+        val centerX = targetW / 2f + panX
+        val centerY = targetH / 2f + panY
+
+        val matrix = Matrix()
+        matrix.postTranslate(-bitmapWidth / 2f, -bitmapHeight / 2f)
+        matrix.postScale(scale, scale)
+        matrix.postRotate(rotationDegrees)
+        matrix.postTranslate(centerX, centerY)
+        return matrix
+    }
+
+    /**
      * Pure-logic transform (no Android types) so it can be unit tested.
      * Centered and axis-aligned; never crops the source.
      */
@@ -49,6 +114,8 @@ object WallpaperRenderer {
         if (bitmapWidth <= 0 || bitmapHeight <= 0 || targetW <= 0 || targetH <= 0) return default
 
         return when (mode) {
+            BackgroundMode.CUSTOM -> default
+
             BackgroundMode.STRETCH -> BackgroundTransform(
                 targetW.toFloat() / bitmapWidth,
                 targetH.toFloat() / bitmapHeight,
@@ -91,8 +158,24 @@ object WallpaperRenderer {
         bitmapHeight: Int,
         targetW: Int,
         targetH: Int,
-        mode: BackgroundMode
+        mode: BackgroundMode,
+        zoom: Float = 1f,
+        rotationDegrees: Float = 0f,
+        translateXFraction: Float = 0f,
+        translateYFraction: Float = 0f
     ): Matrix {
+        if (mode == BackgroundMode.CUSTOM) {
+            return customBackgroundMatrix(
+                bitmapWidth = bitmapWidth,
+                bitmapHeight = bitmapHeight,
+                targetW = targetW,
+                targetH = targetH,
+                zoom = zoom,
+                rotationDegrees = rotationDegrees,
+                translateXFraction = translateXFraction,
+                translateYFraction = translateYFraction
+            )
+        }
         val transform = backgroundTransform(bitmapWidth, bitmapHeight, targetW, targetH, mode)
         val matrix = Matrix()
         matrix.setScale(transform.scaleX, transform.scaleY)
@@ -104,7 +187,7 @@ object WallpaperRenderer {
     fun drawBackground(
         canvas: Canvas,
         bitmap: android.graphics.Bitmap?,
-        mode: BackgroundMode
+        settings: WallpaperSettings
     ) {
         val w = canvas.width
         val h = canvas.height
@@ -112,7 +195,17 @@ object WallpaperRenderer {
             canvas.drawColor(PLACEHOLDER_COLOR)
             return
         }
-        val matrix = backgroundMatrix(bitmap.width, bitmap.height, w, h, mode)
+        val matrix = backgroundMatrix(
+            bitmapWidth = bitmap.width,
+            bitmapHeight = bitmap.height,
+            targetW = w,
+            targetH = h,
+            mode = settings.backgroundMode,
+            zoom = settings.backgroundZoom,
+            rotationDegrees = settings.backgroundRotationDegrees,
+            translateXFraction = settings.backgroundTranslateXFraction,
+            translateYFraction = settings.backgroundTranslateYFraction
+        )
         canvas.drawColor(Color.BLACK)
         canvas.drawBitmap(bitmap, matrix, null)
     }

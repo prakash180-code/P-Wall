@@ -72,6 +72,19 @@ class CustomizeViewModel(
 
     fun setBackgroundMode(mode: BackgroundMode) = update { it.copy(backgroundMode = mode) }
 
+    fun setBackgroundZoom(zoom: Float) = update { it.copy(backgroundZoom = zoom) }
+
+    fun setBackgroundRotation(degrees: Float) = update {
+        it.copy(backgroundRotationDegrees = degrees)
+    }
+
+    fun setBackgroundTranslation(xFraction: Float, yFraction: Float) = update {
+        it.copy(
+            backgroundTranslateXFraction = xFraction.coerceIn(-1f, 1f),
+            backgroundTranslateYFraction = yFraction.coerceIn(-1f, 1f)
+        )
+    }
+
     private fun update(transform: (WallpaperSettings) -> WallpaperSettings) {
         viewModelScope.launch { settingsRepository.updateSettings(transform) }
     }
