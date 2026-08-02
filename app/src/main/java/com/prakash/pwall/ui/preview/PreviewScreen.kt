@@ -22,25 +22,31 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prakash.pwall.di.LocalAppContainer
 import com.prakash.pwall.ui.components.PWallIcons
 import com.prakash.pwall.ui.components.WallpaperPreview
+import com.prakash.pwall.ui.customize.wallpaperPickerIntent
 
 @Composable
 fun PreviewRoute(
     onBack: () -> Unit,
+    onOpenCustomize: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
     val viewModel: PreviewViewModel = viewModel { PreviewViewModel(container.settingsRepository) }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     PreviewScreen(
         settings = settings,
         onBack = onBack,
+        onOpenCustomize = onOpenCustomize,
+        onApplyWallpaper = { context.startActivity(wallpaperPickerIntent(context)) },
         modifier = modifier
     )
 }
@@ -50,6 +56,8 @@ fun PreviewRoute(
 private fun PreviewScreen(
     settings: com.prakash.pwall.data.model.WallpaperSettings,
     onBack: () -> Unit,
+    onOpenCustomize: () -> Unit,
+    onApplyWallpaper: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -90,7 +98,7 @@ private fun PreviewScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(
-                    onClick = { /* Customization arrives in Sprint 2 */ },
+                    onClick = onOpenCustomize,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -98,7 +106,7 @@ private fun PreviewScreen(
                     Text("Customize", modifier = Modifier.padding(start = 8.dp))
                 }
                 Button(
-                    onClick = { /* Apply flow arrives in Sprint 2 */ },
+                    onClick = onApplyWallpaper,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(16.dp)
                 ) {

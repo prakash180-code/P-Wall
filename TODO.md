@@ -1,6 +1,6 @@
 # P-Wall — Roadmap
 
-Development is done sprint-by-sprint. **Sprint 1 is complete.**
+Development is done sprint-by-sprint. **Sprint 1 and Sprint 2 are complete.**
 
 ## Sprint 1 — Project Foundation ✅ DONE
 - [x] Gradle project + wrapper + version catalog
@@ -14,24 +14,24 @@ Development is done sprint-by-sprint. **Sprint 1 is complete.**
 - [x] LicenseManager abstraction + OfflineLicenseManager
 - [x] Builds, tests, lint, emulator smoke test pass
 
-## Sprint 2 — Wallpaper Engine
-- [ ] Android Live Wallpaper Service (`WallpaperService`)
-- [ ] Render selected image with background scaling (Fit/Fill/Stretch/Center Crop)
-- [ ] Digital clock + date rendered on the wallpaper (updates every second)
-- [ ] Customization screen:
-  - [ ] Font family / size / bold / italic
-  - [ ] Clock color / date color
-  - [ ] Shadow (blur, offset, color)
-  - [ ] Transparency
-  - [ ] Position presets + drag & drop
-  - [ ] Background mode
-- [ ] Performance: minimal redraws, battery-aware, pause when screen off
-- [ ] Orientation & lifecycle handling
+## Sprint 2 — Wallpaper Engine ✅ DONE
+- [x] Android Live Wallpaper Service (`PWallWallpaperService` + `WallpaperRenderer`)
+- [x] Render selected image with background scaling (Fit/Fill/Stretch/Center Crop)
+- [x] Digital clock + date rendered on the wallpaper (updates every second)
+- [x] Customization screen:
+  - [x] Font family / size / bold / italic
+  - [x] Clock color / date color
+  - [x] Shadow (blur, offset, color)
+  - [x] Transparency
+  - [x] Position presets + drag & drop
+  - [x] Background mode
+- [x] Performance: minimal redraws, battery-aware, pause when screen off
+- [x] Orientation & lifecycle handling
+- [x] Apply Wallpaper flow (launch live wallpaper picker)
+- [x] Restore settings in wallpaper service (DataStore)
 
 ## Sprint 3 — Production Ready
 - [ ] Live preview polish
-- [ ] Apply Wallpaper flow (launch live wallpaper picker)
-- [ ] Restore settings in wallpaper service
 - [ ] Dark mode polish
 - [ ] Error handling & edge cases
 - [ ] Performance tuning & code cleanup
@@ -48,6 +48,7 @@ Development is done sprint-by-sprint. **Sprint 1 is complete.**
 - Cloud backup
 
 ## Notes / Open Items
-- Live wallpaper service and customization UI are the next (Sprint 2) scope.
+- Customize preview drag competes with the scrollable list; consider
+  gesture-claiming or a dedicated drag affordance in a later polish pass.
 - `mipmap-anydpi-v26` triggers an `ObsoleteSdkInt` lint hint (kept for AAPT compatibility with this AGP version).
 - Dependency version bump suggestions from lint are intentionally deferred (pinned to a tested stable set).

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">P-Wall</string>
+    <string name="wallpaper_description">A live wallpaper that turns your image into a customizable digital clock.</string>
 </resources>

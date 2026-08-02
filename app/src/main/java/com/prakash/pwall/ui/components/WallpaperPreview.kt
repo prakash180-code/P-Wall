@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -29,13 +30,15 @@ fun backgroundContentScale(mode: BackgroundMode): ContentScale = when (mode) {
 
 /**
  * Full-bleed preview of the wallpaper: selected image with the clock overlay.
- * Any change to [settings] re-renders immediately.
+ * Any change to [settings] re-renders immediately. [clockExtraOffset], when
+ * provided, temporarily overrides the clock position (drag & drop).
  */
 @Composable
 fun WallpaperPreview(
     settings: WallpaperSettings,
     modifier: Modifier = Modifier,
-    showHint: Boolean = true
+    showHint: Boolean = true,
+    clockExtraOffset: Offset? = null
 ) {
     val image by produceState<ImageBitmap?>(initialValue = null, settings.selectedImagePath) {
         value = ImageLoader.load(settings.selectedImagePath)
@@ -66,6 +69,10 @@ fun WallpaperPreview(
             }
         }
 
-        ClockOverlay(settings = settings, modifier = Modifier.fillMaxSize())
+        ClockOverlay(
+            settings = settings,
+            modifier = Modifier.fillMaxSize(),
+            extraOffset = clockExtraOffset
+        )
     }
 }

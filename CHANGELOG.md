@@ -2,6 +2,46 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.0.0-SNAPSHOT] - Sprint 2 (Wallpaper Engine)
+
+### Added
+- Live wallpaper engine
+  - `PWallWallpaperService`: `WallpaperService` with its own `Engine`, 1-second
+    aligned redraw loop, pauses rendering when the wallpaper is not visible,
+    loads the selected image, and collects settings from DataStore
+  - `WallpaperRenderer`: pure Canvas renderer for background + clock block
+    (shared logic between engine and unit tests)
+  - `wallpaper.xml` metadata + manifest service declaration
+    (BIND_WALLPAPER, intent filter, meta-data)
+- Customization screen (`ui/customize`)
+  - `CustomizeScreen`: preview with drag-to-position + all setting sections
+  - `CustomizeViewModel`: every setter persists immediately via
+    `SettingsRepository`
+  - `ColorPicker` composable (hue/saturation/brightness sliders)
+  - Clock overlay rewrite: edge padding + `extraOffset` override for drag
+- Navigation: Home → Customize, Preview → Customize
+- Apply Wallpaper flow: `wallpaperPickerIntent` launches the Android live
+  wallpaper picker from Home / Preview / Customize
+- Unit tests for `WallpaperRenderer` positioning + background transform
+  (pure-logic helpers, no Android types)
+
+### Changed
+- `ClockOverlay` / `WallpaperPreview`: shared position logic matches the
+  wallpaper engine (presets anchor to edges, CUSTOM centers on a fraction)
+
+### Verified
+- `assembleDebug` builds successfully (0 errors)
+- Lint: 0 errors (15 warnings are intentional: pinned versions + v26 mipmap)
+- Unit tests: 16/16 pass
+- Runtime smoke test on a physical device (API 33):
+  - Customize screen renders all sections without crashes
+  - Position presets and background modes apply and persist
+  - Drag-to-custom-position persists custom fractions
+  - All changes verified in the DataStore preferences file
+  - Apply Live Wallpaper opens the system live wallpaper picker (P-Wall listed)
+  - Setting P-Wall makes `PWallWallpaperService` the active wallpaper
+  - `pwall-renderer` thread runs; no crashes
+
 ## [1.0.0-SNAPSHOT] - Sprint 1 (Project Foundation)
 
 ### Added

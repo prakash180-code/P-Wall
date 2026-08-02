@@ -31,17 +31,19 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,12 +51,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prakash.pwall.di.LocalAppContainer
 import com.prakash.pwall.ui.components.PWallIcons
 import com.prakash.pwall.ui.components.WallpaperPreview
+import com.prakash.pwall.ui.customize.wallpaperPickerIntent
 import com.prakash.pwall.utils.ImageLoader
-import kotlinx.coroutines.launch
 
 @Composable
 fun HomeRoute(
     onOpenPreview: () -> Unit,
+    onOpenCustomize: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
@@ -64,7 +67,7 @@ fun HomeRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val openDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -98,10 +101,9 @@ fun HomeRoute(
             )
         },
         onOpenPreview = onOpenPreview,
-        onOpenCustomize = {
-            scope.launch {
-                snackbarHostState.showSnackbar("Customization arrives in the next update")
-            }
+        onOpenCustomize = onOpenCustomize,
+        onApplyWallpaper = {
+            context.startActivity(wallpaperPickerIntent(context))
         },
         snackbarHostState = snackbarHostState,
         modifier = modifier
@@ -115,6 +117,7 @@ private fun HomeScreen(
     onSelectImage: () -> Unit,
     onOpenPreview: () -> Unit,
     onOpenCustomize: () -> Unit,
+    onApplyWallpaper: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
@@ -165,6 +168,14 @@ private fun HomeScreen(
                     subtitle = "Style the clock & date",
                     icon = PWallIcons.Tune,
                     onClick = onOpenCustomize
+                )
+            }
+            item {
+                HomeActionCard(
+                    title = "Apply Wallpaper",
+                    subtitle = "Set as live wallpaper",
+                    icon = Icons.Filled.Star,
+                    onClick = onApplyWallpaper
                 )
             }
             item {
