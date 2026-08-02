@@ -25,11 +25,15 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Placeholder so `assembleRelease` produces an installable APK.
+            // Replace with a real signing config before publishing.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

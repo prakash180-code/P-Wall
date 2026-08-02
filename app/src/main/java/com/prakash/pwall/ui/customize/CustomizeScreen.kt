@@ -82,6 +82,14 @@ fun wallpaperPickerIntent(context: Context): Intent {
     }
 }
 
+/**
+ * Opens the system live wallpaper picker. Silently ignores the (very rare)
+ * case where no handler exists for [ACTION_CHANGE_LIVE_WALLPAPER].
+ */
+fun launchWallpaperPicker(context: Context) {
+    runCatching { context.startActivity(wallpaperPickerIntent(context)) }
+}
+
 @Composable
 fun CustomizeRoute(
     onBack: () -> Unit,
@@ -161,7 +169,7 @@ private fun CustomizeScreen(
                 item { BackgroundSection(settings, viewModel) }
                 item {
                     Button(
-                        onClick = { context.startActivity(wallpaperPickerIntent(context)) },
+                        onClick = { launchWallpaperPicker(context) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp)
                     ) {

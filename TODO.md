@@ -1,6 +1,6 @@
 # P-Wall — Roadmap
 
-Development is done sprint-by-sprint. **Sprint 1 and Sprint 2 are complete.**
+Development is done sprint-by-sprint. **Sprints 1–3 are complete.**
 
 ## Sprint 1 — Project Foundation ✅ DONE
 - [x] Gradle project + wrapper + version catalog
@@ -30,15 +30,20 @@ Development is done sprint-by-sprint. **Sprint 1 and Sprint 2 are complete.**
 - [x] Apply Wallpaper flow (launch live wallpaper picker)
 - [x] Restore settings in wallpaper service (DataStore)
 
-## Sprint 3 — Production Ready
-- [ ] Live preview polish
-- [ ] Dark mode polish
-- [ ] Error handling & edge cases
-- [ ] Performance tuning & code cleanup
-- [ ] Release APK build
-- [ ] Final documentation
+## Sprint 3 — Production Ready ✅ DONE
+- [x] Live preview polish (home card shows the clock overlay over the image)
+- [x] Dark mode polish (verified system night-mode toggle)
+- [x] Error handling & edge cases
+  - [x] Image validation on import (rejects non-image / corrupted files)
+  - [x] Safe wallpaper-picker launch
+  - [x] Wallpaper render loop survives transient canvas errors
+  - [x] Image decode moved off the main thread
+- [x] Performance tuning & code cleanup (dead code removed)
+- [x] Release APK build (R8 + shrinkResources, 2.1 MB)
+- [x] Final documentation
 
 ## Future Ideas (architecture reserved, not implemented now)
+- Production signing config (keystore) before publishing
 - Supabase licensing / activation
 - Premium features
 - Weather / battery / calendar overlays
@@ -48,6 +53,8 @@ Development is done sprint-by-sprint. **Sprint 1 and Sprint 2 are complete.**
 - Cloud backup
 
 ## Notes / Open Items
+- Release build uses the debug signing key as a placeholder — configure a real
+  keystore before publishing to any store.
 - Customize preview drag competes with the scrollable list; consider
   gesture-claiming or a dedicated drag affordance in a later polish pass.
 - `mipmap-anydpi-v26` triggers an `ObsoleteSdkInt` lint hint (kept for AAPT compatibility with this AGP version).

@@ -10,9 +10,11 @@ import com.prakash.pwall.utils.BitmapCache
 import com.prakash.pwall.utils.ImageLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Live wallpaper engine. Renders the selected image with a real-time clock and
@@ -32,12 +34,14 @@ class PWallWallpaperService : WallpaperService() {
         @Volatile
         private var settings: WallpaperSettings = WallpaperSettings()
 
+        @Volatile
         private var selectedBitmap: Bitmap? = null
         private var loadedPath: String? = null
         private var surfaceWidth = 0
         private var surfaceHeight = 0
         private var surfaceHolder: SurfaceHolder? = null
 
+        private var decodeJob: Job? = null
         private var renderThread: Thread? = null
 
         override fun onCreate(holder: SurfaceHolder) {
@@ -54,6 +58,7 @@ class PWallWallpaperService : WallpaperService() {
 
         override fun onDestroy() {
             stopRenderThread()
+            decodeJob?.cancel()
             scope.cancel()
             super.onDestroy()
         }
@@ -100,14 +105,17 @@ class PWallWallpaperService : WallpaperService() {
 
         private fun refreshBitmapIfNeeded() {
             val path = settings.selectedImagePath
-            if (path != null && path != loadedPath) {
-                loadedPath = path
-                // Prefer the shared cache, otherwise decode once (synchronously on
-                // the calling thread) and keep the decoded bitmap for the service.
-                selectedBitmap = ImageLoader.cached(path)
+            if (path == null || path == loadedPath) return
+            loadedPath = path
+            decodeJob?.cancel()
+            // Decode off the main thread; the shared cache avoids re-decoding.
+            decodeJob = scope.launch(Dispatchers.IO) {
+                val bitmap = ImageLoader.cached(path)
                     ?: ImageLoader.decodeSampled(path)?.also {
                         BitmapCache.put(BitmapCache.keyFor(path), it)
                     }
+                selectedBitmap = bitmap
+                renderOnce()
             }
         }
 
@@ -147,7 +155,9 @@ class PWallWallpaperService : WallpaperService() {
         private fun renderOnce() {
             if (surfaceWidth <= 0 || surfaceHeight <= 0) return
             val holder = surfaceHolder ?: return
-            val canvas = holder.lockCanvas() ?: return
+            // lockCanvas returns null if another thread is drawing; a failure
+            // here is transient and must not kill the render thread.
+            val canvas = runCatching { holder.lockCanvas() }.getOrNull() ?: return
             try {
                 WallpaperRenderer.drawBackground(canvas, selectedBitmap, settings.backgroundMode)
                 WallpaperRenderer.drawClock(
@@ -155,8 +165,10 @@ class PWallWallpaperService : WallpaperService() {
                     settings = settings,
                     displayDensity = resources.displayMetrics.scaledDensity
                 )
+            } catch (_: Exception) {
+                // Best-effort frame: ignore transient draw errors.
             } finally {
-                holder.unlockCanvasAndPost(canvas)
+                runCatching { holder.unlockCanvasAndPost(canvas) }
             }
         }
     }

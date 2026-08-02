@@ -2,6 +2,42 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.0.0] - Sprint 3 (Production Ready)
+
+### Added
+- Release build pipeline
+  - R8 minification + resource shrinking (`assembleRelease`: 28.8 MB debug →
+    2.1 MB release)
+  - `proguard-rules.pro` keeps the wallpaper service binder glue intact
+  - Release signed with the debug key as a placeholder; swap in a real
+    signing config before publishing
+- Home "Current Wallpaper" card is now a true live preview: the clock + date
+  overlay renders over the selected image (was a static crop)
+- Safe wallpaper-picker launcher (`launchWallpaperPicker`) that swallows the
+  rare no-handler case
+- Image selection hardening: `ImageStore` validates the copied file decodes
+  as a non-empty image and cleans up partial files on failure
+
+### Changed
+- `PWallWallpaperService` now decodes the wallpaper image off the main thread
+  and survives transient canvas errors (best-effort frames, never kills the
+  render thread)
+- Removed dead `positionPresetToAlignment` helper
+- Dark / light theme verified end-to-end (system night-mode toggle)
+
+### Verified
+- `assembleDebug` + `assembleRelease` build successfully
+- Lint: 0 errors
+- Unit tests: 16/16 pass
+- Runtime smoke test on a physical device (API 33) with the **release** APK:
+  - App launches; Home live-preview card shows clock + date over the image
+  - Customize screen renders all sections; setting changes apply live and
+    persist to DataStore across process restart (release)
+  - Apply Wallpaper → system live wallpaper picker → P-Wall set as active
+    wallpaper for home + lock screen
+  - `pwall-renderer` thread runs and stays alive; no crashes
+  - Dark mode renders correctly
+
 ## [1.0.0-SNAPSHOT] - Sprint 2 (Wallpaper Engine)
 
 ### Added

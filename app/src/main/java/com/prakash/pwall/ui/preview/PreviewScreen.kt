@@ -29,7 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prakash.pwall.di.LocalAppContainer
 import com.prakash.pwall.ui.components.PWallIcons
 import com.prakash.pwall.ui.components.WallpaperPreview
-import com.prakash.pwall.ui.customize.wallpaperPickerIntent
+import com.prakash.pwall.ui.customize.launchWallpaperPicker
 
 @Composable
 fun PreviewRoute(
@@ -46,7 +46,7 @@ fun PreviewRoute(
         settings = settings,
         onBack = onBack,
         onOpenCustomize = onOpenCustomize,
-        onApplyWallpaper = { context.startActivity(wallpaperPickerIntent(context)) },
+        onApplyWallpaper = { launchWallpaperPicker(context) },
         modifier = modifier
     )
 }

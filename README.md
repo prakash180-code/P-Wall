@@ -25,8 +25,9 @@
   - Position presets + drag & drop custom position
   - Background mode: Fit / Fill / Stretch / Center Crop
 - Apply as live wallpaper via the Android Live Wallpaper picker
-- Dark / Light Material 3 theme
+- Dark / Light Material 3 theme (follows the system)
 - All settings persisted with DataStore Preferences (restored automatically)
+- R8-optimized release build (~2 MB) with resource shrinking
 
 ## Project Structure
 
@@ -40,12 +41,13 @@ app/src/main/java/com/prakash/pwall/
 ├── data/
 │   ├── model/                 # WallpaperSettings + enums
 │   ├── repository/            # SettingsRepository (DataStore)
-│   └── storage/               # ImageStore (image persistence)
-├── service/                   # Live Wallpaper Service (Sprint 2)
+│   └── storage/               # ImageStore (image persistence + validation)
+├── service/                   # Live Wallpaper Service + renderer
 ├── ui/
 │   ├── home/                  # Home screen + ViewModel
 │   ├── preview/               # Preview screen + ViewModel
-│   └── components/            # Shared Compose components
+│   ├── customize/             # Customization screen + ViewModel
+│   └── components/            # Shared Compose components (incl. ColorPicker)
 ├── utils/                     # ImageLoader, BitmapCache, formatters
 └── theme/                     # Material 3 theme
 ```
@@ -90,7 +92,11 @@ gradlew.bat :app:lintDebug
 
 # Release APK
 gradlew.bat :app:assembleRelease
+# output: app/build/outputs/apk/release/app-release.apk (~2 MB, R8 + shrinkResources)
 ```
+
+> **Note:** the release build currently signs with the debug key as a
+> placeholder. Configure a real signing config before publishing.
 
 ## Roadmap
 

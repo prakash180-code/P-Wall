@@ -4,7 +4,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,13 +35,10 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -51,8 +47,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prakash.pwall.di.LocalAppContainer
 import com.prakash.pwall.ui.components.PWallIcons
 import com.prakash.pwall.ui.components.WallpaperPreview
-import com.prakash.pwall.ui.customize.wallpaperPickerIntent
-import com.prakash.pwall.utils.ImageLoader
+import com.prakash.pwall.ui.customize.launchWallpaperPicker
 
 @Composable
 fun HomeRoute(
@@ -102,9 +97,7 @@ fun HomeRoute(
         },
         onOpenPreview = onOpenPreview,
         onOpenCustomize = onOpenCustomize,
-        onApplyWallpaper = {
-            context.startActivity(wallpaperPickerIntent(context))
-        },
+        onApplyWallpaper = { launchWallpaperPicker(context) },
         snackbarHostState = snackbarHostState,
         modifier = modifier
     )
@@ -196,9 +189,6 @@ private fun CurrentImageCard(
     onSelectImage: () -> Unit
 ) {
     val path = uiState.settings.selectedImagePath
-    val image by produceState<ImageBitmap?>(initialValue = null, path) {
-        value = ImageLoader.load(path)
-    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -219,20 +209,11 @@ private fun CurrentImageCard(
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
-                if (image != null) {
-                    Image(
-                        bitmap = image!!,
-                        contentDescription = "Selected image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    WallpaperPreview(
-                        settings = uiState.settings,
-                        showHint = true,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                WallpaperPreview(
+                    settings = uiState.settings,
+                    showHint = true,
+                    modifier = Modifier.fillMaxSize()
+                )
                 if (uiState.isSavingImage) {
                     CircularProgressIndicator(modifier = Modifier.size(32.dp))
                 }
