@@ -13,7 +13,6 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -43,9 +42,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,7 +59,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prakash.pwall.data.model.BackgroundMode
@@ -140,17 +145,21 @@ private fun CustomizeScreen(
             )
         }
     ) { innerPadding ->
+        var showPositionEditor by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            DraggablePreview(
+            WallpaperPreview(
                 settings = settings,
-                onDragEnd = { x, y ->
-                    viewModel.setPosition(PositionPreset.CUSTOM)
-                    viewModel.setPositionFraction(x, y)
-                }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .padding(16.dp)
+                    .clickable { showPositionEditor = true },
+                showHint = false
             )
 
             LazyColumn(
@@ -166,7 +175,13 @@ private fun CustomizeScreen(
                 item { ColorSection(settings, viewModel) }
                 item { ShadowSection(settings, viewModel) }
                 item { TransparencySection(settings, viewModel) }
-                item { PositionSection(settings, viewModel) }
+                item {
+                    PositionSection(
+                        settings = settings,
+                        viewModel = viewModel,
+                        onEditPosition = { showPositionEditor = true }
+                    )
+                }
                 item { BackgroundSection(settings, viewModel) }
                 item {
                     Button(
@@ -179,63 +194,128 @@ private fun CustomizeScreen(
                 }
             }
         }
+
+        if (showPositionEditor) {
+            FullScreenPositionEditor(
+                settings = settings,
+                onDone = { x, y ->
+                    viewModel.setPosition(PositionPreset.CUSTOM)
+                    viewModel.setPositionFraction(x, y)
+                    showPositionEditor = false
+                },
+                onDismiss = { showPositionEditor = false }
+            )
+        }
     }
 }
 
+/**
+ * Full-screen drag & tap editor for the clock position. Covers the whole
+ * screen exactly like the live preview so pointer fractions map 1:1 with the
+ * rendered wallpaper (no small-box offset issues). Dragging only updates the
+ * preview; the position is saved when the user taps "Done".
+ */
 @Composable
-private fun DraggablePreview(
+private fun FullScreenPositionEditor(
     settings: WallpaperSettings,
-    onDragEnd: (Float, Float) -> Unit
+    onDone: (Float, Float) -> Unit,
+    onDismiss: () -> Unit
 ) {
     var dragOffset by remember { mutableStateOf<Offset?>(null) }
+    var pendingFraction by remember { mutableStateOf<Offset?>(null) }
+    var editorSize by remember { mutableStateOf(IntSize.Zero) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(300.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { offset -> dragOffset = offset },
-                    onDrag = { change, _ ->
-                        change.consume()
-                        dragOffset = change.position
-                    },
-                    onDragEnd = {
-                        dragOffset?.let { position ->
-                            onDragEnd(position.x / size.width, position.y / size.height)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onSizeChanged { editorSize = it }
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = { offset -> dragOffset = offset },
+                        onDrag = { change, _ ->
+                            change.consume()
+                            dragOffset = change.position
+                        },
+                        onDragEnd = {
+                            dragOffset?.let { position ->
+                                if (editorSize.width > 0 && editorSize.height > 0) {
+                                    pendingFraction = Offset(
+                                        position.x / editorSize.width,
+                                        position.y / editorSize.height
+                                    )
+                                }
+                            }
+                            dragOffset = null
+                        },
+                        onDragCancel = { dragOffset = null }
+                    )
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        if (editorSize.width > 0 && editorSize.height > 0) {
+                            pendingFraction = Offset(
+                                offset.x / editorSize.width,
+                                offset.y / editorSize.height
+                            )
                         }
-                        dragOffset = null
+                    }
+                }
+        ) {
+            WallpaperPreview(
+                settings = settings,
+                modifier = Modifier.fillMaxSize(),
+                showHint = false,
+                clockExtraOffset = pendingFraction?.let { fraction ->
+                    Offset(
+                        fraction.x * editorSize.width,
+                        fraction.y * editorSize.height
+                    )
+                } ?: dragOffset
+            )
+            Text(
+                text = if (settings.position == PositionPreset.CUSTOM) {
+                    "Custom position - tap or drag to move"
+                } else {
+                    "Tap or drag the clock to a custom position"
+                },
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White.copy(alpha = 0.9f),
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cancel")
+                }
+                Button(
+                    onClick = {
+                        pendingFraction?.let { fraction ->
+                            onDone(fraction.x, fraction.y)
+                        }
                     },
-                    onDragCancel = { dragOffset = null }
-                )
-            }
-            .pointerInput(Unit) {
-                detectTapGestures { offset ->
-                    onDragEnd(offset.x / size.width, offset.y / size.height)
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Done")
                 }
             }
-    ) {
-        WallpaperPreview(
-            settings = settings,
-            modifier = Modifier.fillMaxSize(),
-            showHint = false,
-            clockExtraOffset = dragOffset
-        )
-        Text(
-            text = if (settings.position == PositionPreset.CUSTOM) {
-                "Custom position - tap or drag to move"
-            } else {
-                "Tap or drag the clock to a custom position"
-            },
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.White.copy(alpha = 0.85f),
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(12.dp)
-                .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-        )
+        }
     }
 }
 
@@ -506,16 +586,27 @@ private fun TransparencySection(settings: WallpaperSettings, vm: CustomizeViewMo
 }
 
 @Composable
-private fun PositionSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+private fun PositionSection(
+    settings: WallpaperSettings,
+    viewModel: CustomizeViewModel,
+    onEditPosition: () -> Unit
+) {
     SectionCard("Position") {
         Text(
-            text = "Pick a preset or drag the clock on the preview above.",
+            text = "Pick a preset or position the clock on a full-screen preview.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Button(
+            onClick = onEditPosition,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Position on full screen")
+        }
         ChipRow(
             options = PositionPreset.entries.map { it.displayName to (it == settings.position) }
-        ) { index -> vm.setPosition(PositionPreset.entries[index]) }
+        ) { index -> viewModel.setPosition(PositionPreset.entries[index]) }
     }
 }
 
