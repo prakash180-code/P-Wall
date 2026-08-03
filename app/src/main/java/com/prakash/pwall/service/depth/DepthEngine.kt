@@ -80,6 +80,22 @@ class DepthEngine(
     /** Latest completed result, for the render loop. */
     fun currentResult(): SegmentationResult? = current.get()
 
+    /**
+     * Re-reads the cached mask for the current image without re-running
+     * segmentation. Used after the manual depth editor saves or resets an edit,
+     * so the wallpaper picks the corrected mask up immediately.
+     */
+    fun reloadFromCache() {
+        val key = activeKey ?: return
+        job?.cancel()
+        job = scope.launch {
+            val result = withContext(Dispatchers.IO) { store.load(key) }
+            if (job?.isActive != true) return@launch
+            current.set(result)
+            onResult(result)
+        }
+    }
+
     /** Drops in-memory state and signals the renderer to fall back to plain drawing. */
     fun clear() {
         job?.cancel()

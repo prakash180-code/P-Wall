@@ -30,6 +30,9 @@
   - AI Depth: on-device subject extraction (Google ML Kit) that hides the clock
     behind people, pets and objects — segments only when the wallpaper changes,
     caches masks on disk, and falls back to plain rendering automatically
+  - Manual Depth Editor: fix the AI result by expanding, shrinking, feathering or
+    smoothing the foreground mask on a full-screen preview, then save (the live
+    wallpaper updates immediately)
 - Apply as live wallpaper via the Android Live Wallpaper picker
 - Dark / Light Material 3 theme (follows the system)
 - All settings persisted with DataStore Preferences (restored automatically)
@@ -63,16 +66,18 @@ app/src/main/java/com/prakash/pwall/
 │       ├── SensorMotionProvider  # Accelerometer + gyroscope listener thread
 │       ├── ParallaxMath          # Pure math (smoothing, tilt mapping, clamping)
 │       └── MotionFrame / MotionSource
-│   └── depth/                    # AI Depth engine
+│   └── depth/                    # AI Depth engine + mask editing
 │       ├── DepthEngine           # Orchestrator (segments only on image change)
 │       ├── DepthSegmenter        # Pluggable segmentation backend
 │       ├── MlKitSubjectSegmenter # Google ML Kit subject segmentation
 │       ├── MaskKeys              # Stable disk-cache keys for masks
-│       └── DiskMaskStore         # PNG mask cache (foreground + background)
+│       ├── DiskMaskStore         # PNG mask cache (original + edited variants)
+│       ├── MaskOps               # Pure alpha ops (expand/shrink/feather/smooth)
+│       └── MaskMath              # Bitmap <-> alpha conversions + compositing
 ├── ui/
 │   ├── home/                  # Home screen + ViewModel
 │   ├── preview/               # Preview screen + ViewModel
-│   ├── customize/             # Customization screen + ViewModel
+│   ├── customize/             # Customization screen + Mask editor + ViewModels
 │   └── components/            # Shared Compose components (incl. ColorPicker)
 ├── utils/                     # ImageLoader, BitmapCache, formatters
 └── theme/                     # Material 3 theme
@@ -107,6 +112,21 @@ image with Google ML Kit subject segmentation (people, pets, objects):
 - Automatic fallback: if the feature is off, the model is unavailable, or
   segmentation fails, the wallpaper renders exactly as before.
 - The on-device model downloads at install time via a manifest meta-data entry.
+
+## Manual Depth Editor
+
+Open "Edit foreground mask" from the AI Depth section to fix the AI extraction:
+
+- Full-screen preview composites the subject over the wallpaper with the same
+  matrix the live wallpaper uses, so edits preview exactly as they will render.
+- Expand / Shrink grow or erode the mask; Feather softens the edges; Smooth
+  cleans jagged borders (all operate on the mask's alpha channel via pure,
+  JVM-tested `MaskOps` math).
+- Reset restores the original AI mask; Save persists the edit
+  (`edited_foreground.png` / `edited_background.png`) and the wallpaper reloads
+  it immediately.
+- The edited mask is a stackable, alpha-buffer based model that future tools
+  (brush, eraser, polygon selection) plug into without changing save/reset.
 
 ## Tech Stack
 

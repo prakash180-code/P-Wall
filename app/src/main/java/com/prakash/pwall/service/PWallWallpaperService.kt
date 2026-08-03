@@ -95,6 +95,12 @@ class PWallWallpaperService : WallpaperService() {
                     renderOnce()
                 }
             }
+            scope.launch {
+                container.maskEditNotifier.collect {
+                    depthEngine.reloadFromCache()
+                    renderOnce()
+                }
+            }
         }
 
         override fun onDestroy() {

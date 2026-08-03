@@ -1,6 +1,22 @@
 # P-Wall — Roadmap
 
-Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–3 are complete.**
+Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–4 are complete.**
+
+## Prompt 4 — Manual Depth Editor ✅ DONE
+- [x] Preview editor: full-screen preview with the subject composited over the
+      wallpaper (same `backgroundMatrix` as the live wallpaper)
+- [x] Expand mask (sliding-window dilation, `MaskOps.expand`)
+- [x] Shrink mask (sliding-window erosion, `MaskOps.shrink`)
+- [x] Feather edges (box-blur the alpha, `MaskOps.feather`)
+- [x] Smooth edges (blur + threshold to clean binary edges, `MaskOps.smooth`)
+- [x] Reset mask (restores the unedited AI mask; saving a reset removes the edit)
+- [x] Save edited mask (`edited_foreground.png` / `edited_background.png` in
+      `DiskMaskStore`; `DepthEngine.reloadFromCache()` via `maskEditNotifier`
+      updates the live wallpaper immediately)
+- [x] "Edit foreground mask" entry in the AI Depth section of Customize
+- [x] Architecture reserved for Brush / Eraser / Polygon selection (alpha-buffer
+      editing model + pure `MaskOps` primitives) — not implemented
+- [x] 79/79 tests, 0 lint errors, debug + release APKs build
 
 ## Prompt 3 — AI Depth Engine ✅ DONE
 - [x] Google ML Kit subject segmentation (`service/depth/MlKitSubjectSegmenter`)
@@ -93,7 +109,7 @@ Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–3 are comp
 - [x] Foundation for premium modules (next: 3D parallax, depth engine)
 
 ## Future Ideas (architecture reserved, not implemented now)
-- AI depth engine + manual depth editor — new layers/effects
+- Brush / Eraser / Polygon selection in the depth editor (alpha-buffer model ready)
 - Production signing config (keystore) before publishing
 - Supabase licensing / activation
 - Premium features (weather / battery / calendar overlays) — new layers/effects

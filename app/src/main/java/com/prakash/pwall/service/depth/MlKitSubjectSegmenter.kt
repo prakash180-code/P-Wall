@@ -1,11 +1,6 @@
 package com.prakash.pwall.service.depth
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import androidx.core.graphics.createBitmap
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenter
@@ -45,27 +40,11 @@ class MlKitSubjectSegmenter : DepthSegmenter {
             Tasks.await(client.process(image), 30, TimeUnit.SECONDS)
         }.getOrNull()?.foregroundBitmap ?: return@withContext null
 
-        val background = eraseSubject(bitmap, foreground)
+        val background = MaskMath.eraseSubject(bitmap, foreground)
         SegmentationResult(foreground = foreground, background = background)
     }
 
     override fun close() {
         runCatching { segmenter?.close() }
-    }
-
-    private fun eraseSubject(source: Bitmap, subject: Bitmap): Bitmap {
-        val erased = createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(erased)
-        canvas.drawBitmap(source, 0f, 0f, null)
-        // DST_OUT keeps the source image everywhere except where the subject has
-        // alpha, punching a subject-shaped transparent hole (CLEAR would wipe the
-        // whole rect).
-        canvas.drawBitmap(
-            subject,
-            0f,
-            0f,
-            Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT) }
-        )
-        return erased
     }
 }

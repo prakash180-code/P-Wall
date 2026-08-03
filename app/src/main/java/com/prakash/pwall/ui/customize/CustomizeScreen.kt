@@ -154,6 +154,8 @@ private fun CustomizeScreen(
     ) { innerPadding ->
         var showPositionEditor by remember { mutableStateOf(false) }
         var showBackgroundEditor by remember { mutableStateOf(false) }
+        var showMaskEditor by remember { mutableStateOf(false) }
+        val container = LocalAppContainer.current
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -198,7 +200,13 @@ private fun CustomizeScreen(
                     )
                 }
                 item { ParallaxSection(settings, viewModel) }
-                item { DepthSection(settings, viewModel) }
+                item {
+                    DepthSection(
+                        settings = settings,
+                        vm = viewModel,
+                        onEditMask = { showMaskEditor = true }
+                    )
+                }
                 item {
                     Button(
                         onClick = { launchWallpaperPicker(context) },
@@ -234,6 +242,16 @@ private fun CustomizeScreen(
                     showBackgroundEditor = false
                 },
                 onDismiss = { showBackgroundEditor = false }
+            )
+        }
+
+        if (showMaskEditor) {
+            FullScreenMaskEditor(
+                settings = settings,
+                sourcePath = settings.selectedImagePath,
+                maskStore = container.maskStore,
+                notifier = container.maskEditNotifier,
+                onDismiss = { showMaskEditor = false }
             )
         }
     }
@@ -863,11 +881,24 @@ private fun hasMotionSensors(context: Context): Boolean {
 }
 
 @Composable
-private fun DepthSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+private fun DepthSection(
+    settings: WallpaperSettings,
+    vm: CustomizeViewModel,
+    onEditMask: () -> Unit
+) {
     SectionCard("AI Depth") {
         SwitchRow("Extract foreground (clock behind subject)", settings.depthEnabled, vm::setDepthEnabled)
+        if (settings.depthEnabled && settings.selectedImagePath != null) {
+            Button(
+                onClick = onEditMask,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Edit foreground mask")
+            }
+        }
         Text(
-            text = "Analyzes the wallpaper once when it changes to separate people, pets and objects, then hides the clock behind them. Requires the on-device AI model (small download on first use).",
+            text = "Analyzes the wallpaper once when it changes to separate people, pets and objects, then hides the clock behind them. You can fix the result by expanding, shrinking or smoothing the mask in the editor. Requires the on-device AI model (small download on first use).",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

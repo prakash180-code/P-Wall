@@ -2,6 +2,40 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.0.0] - Prompt 4 (Manual Depth Editor)
+
+### Added
+- Manual Depth Editor (`ui/customize/MaskEditorScreen.kt` + `MaskEditorViewModel`)
+  - Full-screen preview editor: shows the wallpaper with the extracted subject
+    composited using the same `backgroundMatrix` as the live wallpaper, so the
+    mask stays aligned with the image
+  - Expand / Shrink sliders (grow or erode the subject mask)
+  - Feather slider (box-blur the alpha for soft edges) + Smooth slider
+    (blur + threshold for cleaner binary edges)
+  - Reset (restores the unedited AI mask) + Save (persists the edit and reloads
+    the wallpaper immediately) + Cancel
+  - "Edit foreground mask" button in the AI Depth section of Customize
+- Pure, JVM-testable mask math (`service/depth/MaskOps.kt`): sliding-window
+  dilation/erosion + separable box blur / smooth over an alpha buffer —
+  primitives future tools (brush, eraser, polygon selection) can build on
+- `service/depth/MaskMath.kt`: bitmap <-> alpha-channel conversions +
+  `eraseSubject` (moved from `MlKitSubjectSegmenter`); editing rewrites only the
+  foreground's alpha channel so the subject keeps its real pixels
+- Edited-mask storage in `DiskMaskStore` (`edited_foreground.png` /
+  `edited_background.png` per image key); `load` transparently prefers an edited
+  mask over the AI original, `deleteEdited` on Reset+Save
+- `DepthEngine.reloadFromCache()` + a shared `maskEditNotifier` in `AppContainer`
+  so the live wallpaper service picks up saved/reset edits instantly (no
+  re-segmentation)
+- Unit tests: `MaskOpsTest` (expand/shrink/feather/smooth, radius bounds,
+  no-op radii, binary output)
+
+### Verified
+- `assembleDebug` + `assembleRelease` + `testDebugUnitTest` + `lintDebug`: 0 errors
+- Unit tests: 79/79 pass (71 previous + 8 new)
+- Lint: 0 errors (15 warnings / 4 hints — same as baseline, none in new code)
+- On-device verification pending (no device attached during this pass)
+
 ## [1.0.0] - Prompt 3 (AI Depth Engine)
 
 ### Added
