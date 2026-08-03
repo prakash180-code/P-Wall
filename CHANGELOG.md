@@ -49,7 +49,15 @@ All notable changes to **P-Wall** are documented here.
 - `assembleDebug` + `testDebugUnitTest` + `lintDebug`: 0 errors
 - Unit tests: 107/107 pass (79 previous + 28 new)
 - Lint: 0 errors (dependency-version notices only, same as baseline)
-- On-device verification pending (no device attached during this pass)
+- On-device verification (API 33 emulator):
+  - All four premium sections render in Customize (Glass Clock, Dynamic Colors,
+    Micro Animations, Cinematic Zoom) with their descriptions
+  - Glass panel (opacity 35%, blur 14, corner 24, border 2.0), dynamic clock
+    color, fade transitions, smooth seconds, breathing (0.35) and cinematic zoom
+    (50%, 30s, alternate) all enabled via UI and confirmed persisted in the
+    DataStore preferences file
+  - Live wallpaper applied; `pwall-renderer` engine thread active; frames
+    changing between captures (animations live); no FATAL/crashes in logcat
 
 ## [1.0.0] - Prompt 4 (Manual Depth Editor)
 
