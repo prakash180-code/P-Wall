@@ -33,6 +33,15 @@
   - Manual Depth Editor: fix the AI result by expanding, shrinking, feathering or
     smoothing the foreground mask on a full-screen preview, then save (the live
     wallpaper updates immediately)
+- Premium UI & effects:
+  - Glass Clock: frosted-glass panel behind the clock with real backdrop blur,
+    adjustable opacity / corner radius / border / glow
+  - Dynamic Colors: clock and date automatically pick readable colors from the
+    wallpaper's dominant palette (with a manual-color fallback)
+  - Micro Animations: smooth second sweep, gentle digit cross-fade, and a subtle
+    breathing pulse (battery-aware frame pacing)
+  - Cinematic Zoom: slow Ken Burns sweep on the wallpaper (zoom-in / zoom-out /
+    alternate)
 - Apply as live wallpaper via the Android Live Wallpaper picker
 - Dark / Light Material 3 theme (follows the system)
 - All settings persisted with DataStore Preferences (restored automatically)
@@ -59,8 +68,15 @@ app/src/main/java/com/prakash/pwall/
 │   │   ├── LayerSystem / EffectManager / ModuleSystem
 │   │   ├── Layer / Effect / Module    # Modular seams for future features
 │   │   ├── WallpaperCoreModule        # Default 5-layer stack
+│   │   ├── PremiumEffectsModule       # Glass panel below the clock
 │   │   ├── ClockBlockLayout           # Shared clock + date layout math
-│   │   └── layers/                    # Background / Clock / Date / Foreground / Overlay
+│   │   ├── RenderAnimation            # TimeTransition / Breathing / easing
+│   │   ├── ClockDraw                  # Shared glow + alpha text drawing
+│   │   └── layers/                    # Background / Glass / Clock / Date / Foreground / Overlay
+│   ├── color/                     # Dynamic colors from the wallpaper
+│   │   ├── DominantColorExtractor # Pure quantization of dominant colors
+│   │   └── ColorPalette           # Palette + readable auto clock/date colors
+│   ├── effects/                   # CinematicZoom (Ken Burns sweep)
 │   └── motion/                   # 3D parallax engine
 │       ├── ParallaxController    # Lifecycle + settings + active/moving/idle
 │       ├── SensorMotionProvider  # Accelerometer + gyroscope listener thread
@@ -127,6 +143,29 @@ Open "Edit foreground mask" from the AI Depth section to fix the AI extraction:
   it immediately.
 - The edited mask is a stackable, alpha-buffer based model that future tools
   (brush, eraser, polygon selection) plug into without changing save/reset.
+
+## Premium UI & Effects
+
+The premium features plug into the render engine as extra layers/math without
+touching the core stack:
+
+- **Glass Clock** (`PremiumEffectsModule` + `GlassPanelLayer`): a frosted panel
+  is inserted *below* the clock layer. The blur is a real backdrop blur — the
+  wallpaper region behind the block is sampled into a small cached bitmap and
+  upscaled, so it stays cheap even at full opacity. When the feature is off the
+  layer draws nothing and the output is identical to the core render.
+- **Dynamic Colors** (`service/color/`): the wallpaper image is quantized once
+  per image change into a small palette (pure JVM math, unit-tested).
+  `PremiumColors` then picks a readable clock/date color per frame —
+  wallpaper-derived when the toggle is on, the manual color otherwise. Preview
+  and live wallpaper share the same resolver.
+- **Micro Animations** (`RenderAnimation` + `FrameTicker`): the service remembers
+  the previous time/date text and cross-fades over 420 ms whenever it changes;
+  a 4-second sine pulse adds a barely-there breathing scale/alpha. Frame pacing
+  jumps to ~30 fps only while a fade runs and ~8 fps while breathing/zooming.
+- **Cinematic Zoom** (`CinematicZoom`): pure Ken Burns math (zoom-in / zoom-out /
+  alternate sine loop) applied as a post-scale on the shared `backgroundMatrix`,
+  so the AI-depth foreground stays pixel-aligned while the camera sweeps.
 
 ## Tech Stack
 

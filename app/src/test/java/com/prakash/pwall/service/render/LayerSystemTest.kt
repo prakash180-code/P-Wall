@@ -66,6 +66,31 @@ class LayerSystemTest {
     }
 
     @Test
+    fun insertBefore_placesLayerAheadOfTarget() {
+        val system = LayerSystem()
+        system.add(RecordingLayer("background"))
+        system.add(RecordingLayer("clock"))
+        system.add(RecordingLayer("date"))
+
+        val inserted = system.insertBefore("clock", RecordingLayer("glass"))
+
+        assertEquals(true, inserted)
+        assertEquals(listOf("background", "glass", "clock", "date"), system.ids)
+    }
+
+    @Test
+    fun insertBefore_missingTarget_returnsFalseWithoutChanging() {
+        val system = LayerSystem()
+        system.add(RecordingLayer("background"))
+        system.add(RecordingLayer("clock"))
+
+        val inserted = system.insertBefore("missing", RecordingLayer("glass"))
+
+        assertEquals(false, inserted)
+        assertEquals(listOf("background", "clock"), system.ids)
+    }
+
+    @Test
     fun renderFrame_providesDefaults() {
         val frame = RenderFrame(settings = WallpaperSettings())
         assertEquals(null, frame.backgroundBitmap)

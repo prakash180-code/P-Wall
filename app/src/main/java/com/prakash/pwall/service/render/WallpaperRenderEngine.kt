@@ -31,6 +31,13 @@ class WallpaperRenderEngine(
         layerSystem.add(layer)
     }
 
+    /**
+     * Inserts [layer] right before the layer with [targetId] (e.g. glass panel
+     * below the clock). Returns false when the target layer is not installed.
+     */
+    fun insertLayerBefore(targetId: String, layer: Layer): Boolean =
+        layerSystem.insertBefore(targetId, layer)
+
     fun removeLayer(id: String): Layer? = layerSystem.remove(id)
 
     fun addEffect(effect: Effect) {

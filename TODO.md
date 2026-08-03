@@ -1,6 +1,25 @@
 # P-Wall — Roadmap
 
-Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–4 are complete.**
+Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–5 are complete.**
+
+## Prompt 5 — Premium UI & Effects ✅ DONE
+- [x] Glass Clock: frosted-glass panel behind the clock with real backdrop blur,
+      panel opacity, corner radius, border color/width, and a soft glow
+      (`GlassPanelLayer` + `PremiumEffectsModule` via `LayerSystem.insertBefore`)
+- [x] Dynamic Colors: dominant-color extraction from the wallpaper
+      (`DominantColorExtractor` + `ColorPalette`), automatic readable clock/date
+      colors with a manual-color fallback (`PremiumColors`)
+- [x] Micro Animations: 420 ms ease-out cross-fade on digit changes
+      (`TimeTransition`), smooth second sweep, gentle breathing pulse
+      (`Breathing`), battery-aware pacing (~30 fps during fades, ~8 fps breathing)
+- [x] Cinematic Zoom: Ken Burns sweep (zoom-in / zoom-out / alternate) applied to
+      the shared background matrix (`CinematicZoom`)
+- [x] Premium Settings: Glass Clock / Dynamic Colors / Micro Animations /
+      Cinematic Zoom sections in Customize + ViewModel setters + DataStore
+- [x] Previews upgraded: `WallpaperPreview` renders through the same engine as the
+      live wallpaper; `ClockOverlay` adds smooth seconds, cross-fade, breathing,
+      glow
+- [x] 107/107 tests (28 new), 0 lint errors, debug APK builds
 
 ## Prompt 4 — Manual Depth Editor ✅ DONE
 - [x] Preview editor: full-screen preview with the subject composited over the

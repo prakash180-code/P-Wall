@@ -10,6 +10,7 @@ import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.ZoomDirection
 import com.prakash.pwall.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -100,6 +101,58 @@ class CustomizeViewModel(
     }
 
     fun setDepthEnabled(enabled: Boolean) = update { it.copy(depthEnabled = enabled) }
+
+    fun setGlassEnabled(enabled: Boolean) = update { it.copy(glassEnabled = enabled) }
+
+    fun setGlassBlurRadius(radius: Float) = update { it.copy(glassBlurRadius = radius) }
+
+    fun setGlassPanelOpacity(percent: Int) = update {
+        it.copy(glassPanelOpacity = percent.coerceIn(0, 100))
+    }
+
+    fun setGlassCornerRadius(radius: Float) = update { it.copy(glassCornerRadius = radius) }
+
+    fun setGlassBorderWidth(width: Float) = update { it.copy(glassBorderWidth = width) }
+
+    fun setGlassBorderColor(color: Color) = update {
+        it.copy(glassBorderColor = color.toArgb().toLong())
+    }
+
+    fun setGlassGlowRadius(radius: Float) = update { it.copy(glassGlowRadius = radius) }
+
+    fun setGlassGlowColor(color: Color) = update {
+        it.copy(glassGlowColor = color.toArgb().toLong())
+    }
+
+    fun setDynamicClockColor(enabled: Boolean) = update { it.copy(dynamicClockColor = enabled) }
+
+    fun setDynamicDateColor(enabled: Boolean) = update { it.copy(dynamicDateColor = enabled) }
+
+    fun setFadeTransitionsEnabled(enabled: Boolean) = update {
+        it.copy(fadeTransitionsEnabled = enabled)
+    }
+
+    fun setSmoothSecondsEnabled(enabled: Boolean) = update {
+        it.copy(smoothSecondsEnabled = enabled)
+    }
+
+    fun setBreathingEnabled(enabled: Boolean) = update { it.copy(breathingEnabled = enabled) }
+
+    fun setBreathingStrength(value: Float) = update {
+        it.copy(breathingStrength = value.coerceIn(0f, 1f))
+    }
+
+    fun setZoomEnabled(enabled: Boolean) = update { it.copy(zoomEnabled = enabled) }
+
+    fun setZoomStrength(value: Float) = update {
+        it.copy(zoomStrength = value.coerceIn(0f, 1f))
+    }
+
+    fun setZoomDurationSeconds(value: Float) = update {
+        it.copy(zoomDurationSeconds = value.coerceIn(5f, 120f))
+    }
+
+    fun setZoomDirection(direction: ZoomDirection) = update { it.copy(zoomDirection = direction) }
 
     private fun update(transform: (WallpaperSettings) -> WallpaperSettings) {
         viewModelScope.launch { settingsRepository.updateSettings(transform) }

@@ -77,6 +77,7 @@ import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.ZoomDirection
 import com.prakash.pwall.di.LocalAppContainer
 import com.prakash.pwall.service.PWallWallpaperService
 import com.prakash.pwall.service.WallpaperRenderer
@@ -207,6 +208,10 @@ private fun CustomizeScreen(
                         onEditMask = { showMaskEditor = true }
                     )
                 }
+                item { GlassSection(settings, viewModel) }
+                item { DynamicColorsSection(settings, viewModel) }
+                item { AnimationSection(settings, viewModel) }
+                item { CinematicZoomSection(settings, viewModel) }
                 item {
                     Button(
                         onClick = { launchWallpaperPicker(context) },
@@ -899,6 +904,140 @@ private fun DepthSection(
         }
         Text(
             text = "Analyzes the wallpaper once when it changes to separate people, pets and objects, then hides the clock behind them. You can fix the result by expanding, shrinking or smoothing the mask in the editor. Requires the on-device AI model (small download on first use).",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun GlassSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+    SectionCard("Glass Clock") {
+        SwitchRow("Enable glass panel", settings.glassEnabled, vm::setGlassEnabled)
+        Text(
+            text = "Frosted blur, soft glow and a subtle border around the clock. Off keeps the default clean look.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        SliderWithLabel(
+            label = "Backdrop blur",
+            value = settings.glassBlurRadius,
+            valueRange = 0f..40f,
+            displayValue = settings.glassBlurRadius.roundToInt().toString(),
+            onValueChange = vm::setGlassBlurRadius
+        )
+        SliderWithLabel(
+            label = "Panel opacity",
+            value = settings.glassPanelOpacity.toFloat(),
+            valueRange = 0f..100f,
+            displayValue = "${settings.glassPanelOpacity}%",
+            onValueChange = { vm.setGlassPanelOpacity(it.roundToInt()) }
+        )
+        SliderWithLabel(
+            label = "Corner radius",
+            value = settings.glassCornerRadius,
+            valueRange = 0f..48f,
+            displayValue = settings.glassCornerRadius.roundToInt().toString(),
+            onValueChange = vm::setGlassCornerRadius
+        )
+        SliderWithLabel(
+            label = "Border width",
+            value = settings.glassBorderWidth,
+            valueRange = 0f..8f,
+            displayValue = String.format(java.util.Locale.ROOT, "%.1f", settings.glassBorderWidth),
+            onValueChange = vm::setGlassBorderWidth
+        )
+        ExpandableColorRow(
+            title = "Border color",
+            color = settings.glassBorderColorValue,
+            onColorChange = vm::setGlassBorderColor
+        )
+        SliderWithLabel(
+            label = "Glow intensity",
+            value = settings.glassGlowRadius,
+            valueRange = 0f..60f,
+            displayValue = settings.glassGlowRadius.roundToInt().toString(),
+            onValueChange = vm::setGlassGlowRadius
+        )
+        ExpandableColorRow(
+            title = "Glow color",
+            color = settings.glassGlowColorValue,
+            onColorChange = vm::setGlassGlowColor
+        )
+    }
+}
+
+@Composable
+private fun DynamicColorsSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+    SectionCard("Dynamic Colors") {
+        SwitchRow(
+            "Match clock color to wallpaper",
+            settings.dynamicClockColor,
+            vm::setDynamicClockColor
+        )
+        SwitchRow(
+            "Match date color to wallpaper",
+            settings.dynamicDateColor,
+            vm::setDynamicDateColor
+        )
+        Text(
+            text = "Picks the dominant colors from the current image, choosing a readable blend for the text. You can still pick a manual color below; the toggle just switches to automatic.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun AnimationSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+    SectionCard("Micro Animations") {
+        SwitchRow("Fade between digits", settings.fadeTransitionsEnabled, vm::setFadeTransitionsEnabled)
+        SwitchRow("Smooth second sweep", settings.smoothSecondsEnabled, vm::setSmoothSecondsEnabled)
+        SwitchRow("Gentle breathing", settings.breathingEnabled, vm::setBreathingEnabled)
+        if (settings.breathingEnabled) {
+            SliderWithLabel(
+                label = "Breathing strength",
+                value = settings.breathingStrength,
+                valueRange = 0f..1f,
+                displayValue = "${(settings.breathingStrength * 100).roundToInt()}%",
+                onValueChange = vm::setBreathingStrength
+            )
+        }
+        Text(
+            text = "Small, battery-friendly touches: a short cross-fade when the time changes and a barely-there pulse on the clock block.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun CinematicZoomSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+    SectionCard("Cinematic Zoom") {
+        SwitchRow("Enable slow zoom", settings.zoomEnabled, vm::setZoomEnabled)
+        if (settings.zoomEnabled) {
+            SliderWithLabel(
+                label = "Zoom strength",
+                value = settings.zoomStrength,
+                valueRange = 0f..1f,
+                displayValue = "${(settings.zoomStrength * 100).roundToInt()}%",
+                onValueChange = vm::setZoomStrength
+            )
+            SliderWithLabel(
+                label = "Loop duration",
+                value = settings.zoomDurationSeconds,
+                valueRange = 5f..120f,
+                displayValue = "${settings.zoomDurationSeconds.roundToInt()}s",
+                onValueChange = vm::setZoomDurationSeconds
+            )
+            ChipRow(
+                options = ZoomDirection.entries.map {
+                    it.displayName to (it == settings.zoomDirection)
+                }
+            ) { index -> vm.setZoomDirection(ZoomDirection.entries[index]) }
+        }
+        Text(
+            text = "A gentle Ken Burns sweep, looping as long as the wallpaper runs.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

@@ -15,6 +15,7 @@ import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.ZoomDirection
 import com.prakash.pwall.data.storage.ImageStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -80,7 +81,26 @@ class SettingsRepository(
             parallaxSensitivity = floatPreference(PARALLAX_SENSITIVITY, 0.5f),
             parallaxStrength = floatPreference(PARALLAX_STRENGTH, 0.5f),
             parallaxSmoothing = floatPreference(PARALLAX_SMOOTHING, 0.5f),
-            depthEnabled = booleanPreference(DEPTH_ENABLED, false)
+            depthEnabled = booleanPreference(DEPTH_ENABLED, false),
+            glassEnabled = booleanPreference(GLASS_ENABLED, false),
+            glassBlurRadius = floatPreference(GLASS_BLUR_RADIUS, 14f),
+            glassPanelOpacity = intPreference(GLASS_PANEL_OPACITY, 35),
+            glassCornerRadius = floatPreference(GLASS_CORNER_RADIUS, 24f),
+            glassBorderColor = longPreference(GLASS_BORDER_COLOR, WallpaperSettings().glassBorderColor),
+            glassBorderWidth = floatPreference(GLASS_BORDER_WIDTH, 2f),
+            glassGlowColor = longPreference(GLASS_GLOW_COLOR, WallpaperSettings().glassGlowColor),
+            glassGlowRadius = floatPreference(GLASS_GLOW_RADIUS, 20f),
+            dynamicClockColor = booleanPreference(DYNAMIC_CLOCK_COLOR, false),
+            dynamicDateColor = booleanPreference(DYNAMIC_DATE_COLOR, false),
+            fadeTransitionsEnabled = booleanPreference(FADE_TRANSITIONS_ENABLED, true),
+            smoothSecondsEnabled = booleanPreference(SMOOTH_SECONDS_ENABLED, true),
+            breathingEnabled = booleanPreference(BREATHING_ENABLED, true),
+            breathingStrength = floatPreference(BREATHING_STRENGTH, 0.35f),
+            zoomEnabled = booleanPreference(ZOOM_ENABLED, false),
+            zoomStrength = floatPreference(ZOOM_STRENGTH, 0.5f),
+            zoomDurationSeconds = floatPreference(ZOOM_DURATION_SECONDS, 30f),
+            zoomDirection = ZoomDirection.entries.firstOrNull { it.name == stringPreference(ZOOM_DIRECTION) }
+                ?: WallpaperSettings().zoomDirection
         )
     }
 
@@ -113,6 +133,24 @@ class SettingsRepository(
         prefs[floatPreferencesKey(PARALLAX_STRENGTH)] = parallaxStrength
         prefs[floatPreferencesKey(PARALLAX_SMOOTHING)] = parallaxSmoothing
         prefs[booleanPreferencesKey(DEPTH_ENABLED)] = depthEnabled
+        prefs[booleanPreferencesKey(GLASS_ENABLED)] = glassEnabled
+        prefs[floatPreferencesKey(GLASS_BLUR_RADIUS)] = glassBlurRadius
+        prefs[intPreferencesKey(GLASS_PANEL_OPACITY)] = glassPanelOpacity
+        prefs[floatPreferencesKey(GLASS_CORNER_RADIUS)] = glassCornerRadius
+        prefs[longPreferencesKey(GLASS_BORDER_COLOR)] = glassBorderColor
+        prefs[floatPreferencesKey(GLASS_BORDER_WIDTH)] = glassBorderWidth
+        prefs[longPreferencesKey(GLASS_GLOW_COLOR)] = glassGlowColor
+        prefs[floatPreferencesKey(GLASS_GLOW_RADIUS)] = glassGlowRadius
+        prefs[booleanPreferencesKey(DYNAMIC_CLOCK_COLOR)] = dynamicClockColor
+        prefs[booleanPreferencesKey(DYNAMIC_DATE_COLOR)] = dynamicDateColor
+        prefs[booleanPreferencesKey(FADE_TRANSITIONS_ENABLED)] = fadeTransitionsEnabled
+        prefs[booleanPreferencesKey(SMOOTH_SECONDS_ENABLED)] = smoothSecondsEnabled
+        prefs[booleanPreferencesKey(BREATHING_ENABLED)] = breathingEnabled
+        prefs[floatPreferencesKey(BREATHING_STRENGTH)] = breathingStrength
+        prefs[booleanPreferencesKey(ZOOM_ENABLED)] = zoomEnabled
+        prefs[floatPreferencesKey(ZOOM_STRENGTH)] = zoomStrength
+        prefs[floatPreferencesKey(ZOOM_DURATION_SECONDS)] = zoomDurationSeconds
+        prefs[stringPreferencesKey(ZOOM_DIRECTION)] = zoomDirection.name
     }
 
     private fun Preferences.stringPreference(key: String): String? = this[stringPreferencesKey(key)]
@@ -157,5 +195,23 @@ class SettingsRepository(
         const val PARALLAX_STRENGTH = "parallax_strength"
         const val PARALLAX_SMOOTHING = "parallax_smoothing"
         const val DEPTH_ENABLED = "depth_enabled"
+        const val GLASS_ENABLED = "glass_enabled"
+        const val GLASS_BLUR_RADIUS = "glass_blur_radius"
+        const val GLASS_PANEL_OPACITY = "glass_panel_opacity"
+        const val GLASS_CORNER_RADIUS = "glass_corner_radius"
+        const val GLASS_BORDER_COLOR = "glass_border_color"
+        const val GLASS_BORDER_WIDTH = "glass_border_width"
+        const val GLASS_GLOW_COLOR = "glass_glow_color"
+        const val GLASS_GLOW_RADIUS = "glass_glow_radius"
+        const val DYNAMIC_CLOCK_COLOR = "dynamic_clock_color"
+        const val DYNAMIC_DATE_COLOR = "dynamic_date_color"
+        const val FADE_TRANSITIONS_ENABLED = "fade_transitions_enabled"
+        const val SMOOTH_SECONDS_ENABLED = "smooth_seconds_enabled"
+        const val BREATHING_ENABLED = "breathing_enabled"
+        const val BREATHING_STRENGTH = "breathing_strength"
+        const val ZOOM_ENABLED = "zoom_enabled"
+        const val ZOOM_STRENGTH = "zoom_strength"
+        const val ZOOM_DURATION_SECONDS = "zoom_duration_seconds"
+        const val ZOOM_DIRECTION = "zoom_direction"
     }
 }

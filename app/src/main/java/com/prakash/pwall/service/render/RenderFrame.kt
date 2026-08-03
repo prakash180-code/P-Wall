@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.service.WallpaperRenderer
+import com.prakash.pwall.service.color.ColorPalette
 import com.prakash.pwall.service.motion.MotionFrame
 import com.prakash.pwall.service.motion.ParallaxMath
 import java.time.LocalDateTime
@@ -15,6 +16,10 @@ import kotlin.math.min
  * same output the legacy renderer did. The clock block is resolved lazily once
  * per frame and shared by the clock/date layers (single paint allocation, no
  * duplicated layout math). [motion] carries the current 3D parallax tilt, if any.
+ *
+ * Premium frame data: [palette] feeds the dynamic colors, [timeTransition] and
+ * [breathing] drive the micro-animations, and [cinematicZoom] applies the
+ * slow Ken Burns sweep to the shared background matrix.
  */
 data class RenderFrame(
     val settings: WallpaperSettings,
@@ -24,7 +29,11 @@ data class RenderFrame(
     val displayDensity: Float = 1f,
     val width: Int = 0,
     val height: Int = 0,
-    val motion: MotionFrame? = null
+    val motion: MotionFrame? = null,
+    val palette: ColorPalette? = null,
+    val timeTransition: TimeTransition? = null,
+    val breathing: Breathing? = null,
+    val cinematicZoom: Float = 1f
 ) {
     val clockBlock: ClockBlockLayout.Block by lazy {
         ClockBlockLayout.resolve(
@@ -33,15 +42,17 @@ data class RenderFrame(
             settings = settings,
             displayDensity = displayDensity,
             now = now,
-            motion = motion
+            motion = motion,
+            palette = palette
         )
     }
 
     /**
      * The single [Matrix] that maps the source image onto the canvas, including
-     * the 3D parallax shift. Shared by the background layer and the AI-depth
-     * foreground layer so the extracted subject always stays pixel-aligned with
-     * the image beneath it (even while the device is tilted).
+     * the 3D parallax shift and the cinematic zoom. Shared by the background
+     * layer and the AI-depth foreground layer so the extracted subject always
+     * stays pixel-aligned with the image beneath it (even while the device is
+     * tilted or the camera slowly zooms).
      */
     val backgroundMatrix: Matrix by lazy {
         val bitmap = backgroundBitmap
@@ -79,6 +90,9 @@ data class RenderFrame(
                 userPanY = userPanY
             )
             base.postTranslate(shiftX, shiftY)
+        }
+        if (cinematicZoom != 1f && width > 0 && height > 0) {
+            base.postScale(cinematicZoom, cinematicZoom, width / 2f, height / 2f)
         }
         base
     }

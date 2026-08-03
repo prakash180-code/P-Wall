@@ -7,14 +7,22 @@ import android.view.SurfaceHolder
 import com.prakash.pwall.PWallApplication
 import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.di.AppContainer
+import com.prakash.pwall.service.color.ColorPalette
+import com.prakash.pwall.service.color.DominantColorExtractor
 import com.prakash.pwall.service.depth.DepthEngine
 import com.prakash.pwall.service.depth.DiskMaskStore
 import com.prakash.pwall.service.depth.MlKitSubjectSegmenter
+import com.prakash.pwall.service.effects.CinematicZoom
 import com.prakash.pwall.service.motion.ParallaxController
+import com.prakash.pwall.service.render.AnimationMath
+import com.prakash.pwall.service.render.Breathing
+import com.prakash.pwall.service.render.PremiumEffectsModule
 import com.prakash.pwall.service.render.RenderFrame
+import com.prakash.pwall.service.render.TimeTransition
 import com.prakash.pwall.service.render.WallpaperCoreModule
 import com.prakash.pwall.service.render.WallpaperRenderEngine
 import com.prakash.pwall.utils.BitmapCache
+import com.prakash.pwall.utils.ClockTextFormatter
 import com.prakash.pwall.utils.ImageLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +31,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
 
 /** ~30 fps during movement. */
 private const val PARALLAX_FRAME_MS = 33L
@@ -32,6 +41,12 @@ private const val SETTLING_FRAME_MS = 200L
 
 /** After this long without movement, drop to the 1 fps clock loop. */
 private const val IDLE_SETTLE_MS = 5000L
+
+/** ~30 fps during a text cross-fade. */
+private const val ANIMATION_FRAME_MS = 33L
+
+/** ~8 fps for the continuous breathing / cinematic zoom sweep. */
+private const val BREATHING_FRAME_MS = 125L
 
 /**
  * Live wallpaper engine. Renders the selected image with a real-time clock and
@@ -62,6 +77,11 @@ class PWallWallpaperService : WallpaperService() {
         private var decodeJob: Job? = null
         private var renderThread: Thread? = null
 
+        /** Dominant colors of the current image, for the dynamic colors feature. */
+        private var palette: ColorPalette? = null
+
+        private val frameTicker = FrameTicker()
+
         private val parallaxController: ParallaxController by lazy {
             ParallaxController(applicationContext)
         }
@@ -78,6 +98,7 @@ class PWallWallpaperService : WallpaperService() {
         private val renderEngine: WallpaperRenderEngine by lazy {
             WallpaperRenderEngine(motionSource = parallaxController).apply {
                 installModule(WallpaperCoreModule())
+                installModule(PremiumEffectsModule())
             }
         }
 
@@ -168,6 +189,7 @@ class PWallWallpaperService : WallpaperService() {
                 selectedBitmap = bitmap
                 if (bitmap != null) {
                     depthEngine.onImageChanged(path, bitmap)
+                    palette = DominantColorExtractor.extract(bitmap)
                 }
                 renderOnce()
             }
@@ -215,6 +237,8 @@ class PWallWallpaperService : WallpaperService() {
          * - parallax on + moving: ~30 fps for smooth premium motion
          * - parallax on + settling: ~5 fps so pickup is responsive
          * - parallax on + idle: back to 1 fps (clock-only redraw)
+         * - premium animations: ~30 fps during a text cross-fade, ~8 fps while
+         *   breathing or the cinematic zoom is sweeping
          */
         private fun nextFrameDelay(): Long {
             val now = SystemClock.elapsedRealtime()
@@ -226,6 +250,18 @@ class PWallWallpaperService : WallpaperService() {
                     return alignMillis(now, SETTLING_FRAME_MS)
                 }
                 return alignMillis(now, 1000L)
+            }
+            val s = settings
+            val nowMs = System.currentTimeMillis()
+            if ((s.fadeTransitionsEnabled || s.smoothSecondsEnabled) &&
+                frameTicker.isTransitionActive(nowMs)
+            ) {
+                return alignMillis(now, ANIMATION_FRAME_MS)
+            }
+            if ((s.breathingEnabled && s.breathingStrength > 0f) ||
+                (s.zoomEnabled && s.zoomStrength > 0f)
+            ) {
+                return alignMillis(now, BREATHING_FRAME_MS)
             }
             return nextSecondWaitMillis()
         }
@@ -247,15 +283,38 @@ class PWallWallpaperService : WallpaperService() {
             // here is transient and must not kill the render thread.
             val canvas = runCatching { holder.lockCanvas() }.getOrNull() ?: return
             try {
+                val current = settings
+                val now = LocalDateTime.now()
+                val nowMs = System.currentTimeMillis()
+                val transition = frameTicker.transition(now, current, nowMs)
+                val breathing = if (current.breathingEnabled && current.breathingStrength > 0f) {
+                    Breathing(AnimationMath.breathingPhase(nowMs), current.breathingStrength)
+                } else {
+                    null
+                }
+                val cinematicZoom = if (current.zoomEnabled && current.zoomStrength > 0f) {
+                    CinematicZoom.zoomAt(
+                        elapsedMs = nowMs,
+                        durationMs = (current.zoomDurationSeconds * 1000f).toLong(),
+                        strength = current.zoomStrength,
+                        direction = current.zoomDirection
+                    )
+                } else {
+                    1f
+                }
                 renderEngine.render(
                     canvas,
                     RenderFrame(
-                        settings = settings,
+                        settings = current,
                         backgroundBitmap = selectedBitmap,
                         foregroundBitmap = depthEngine.currentResult()?.foreground,
                         displayDensity = resources.displayMetrics.scaledDensity,
                         width = canvas.width,
-                        height = canvas.height
+                        height = canvas.height,
+                        palette = palette,
+                        timeTransition = transition,
+                        breathing = breathing,
+                        cinematicZoom = cinematicZoom
                     )
                 )
             } catch (_: Exception) {
@@ -264,5 +323,54 @@ class PWallWallpaperService : WallpaperService() {
                 runCatching { holder.unlockCanvasAndPost(canvas) }
             }
         }
+    }
+
+    /**
+     * Remembers the previous time/date text and the moment it changed, so the
+     * render loop can cross-fade between the old and new digits whenever the
+     * clock ticks. Pure state; no Android types.
+     */
+    private class FrameTicker {
+
+        private var prevTime: String? = null
+        private var prevDate: String? = null
+        private var currentTime: String? = null
+        private var currentDate: String? = null
+        private var changeMs = 0L
+        private var inited = false
+
+        fun transition(now: LocalDateTime, settings: WallpaperSettings, nowMs: Long): TimeTransition? {
+            val timeText = ClockTextFormatter.formatTime(
+                now, settings.timeFormat, settings.showSeconds
+            )
+            val dateText = ClockTextFormatter.formatDate(now, settings.dateFormat)
+            if (!inited) {
+                currentTime = timeText
+                currentDate = dateText
+                inited = true
+                return null
+            }
+            if (timeText != currentTime || dateText != currentDate) {
+                prevTime = currentTime
+                prevDate = currentDate
+                currentTime = timeText
+                currentDate = dateText
+                changeMs = nowMs
+            }
+            if (!settings.fadeTransitionsEnabled && !settings.smoothSecondsEnabled) return null
+            val elapsed = nowMs - changeMs
+            if (elapsed >= AnimationMath.TRANSITION_MS) return null
+            return TimeTransition(
+                oldTimeText = prevTime,
+                oldDateText = prevDate,
+                progress = AnimationMath.easeOutCubic(
+                    elapsed.toFloat() / AnimationMath.TRANSITION_MS
+                )
+            )
+        }
+
+        /** True while a cross-fade is still running (drives the frame pacing). */
+        fun isTransitionActive(nowMs: Long): Boolean =
+            inited && (nowMs - changeMs) < AnimationMath.TRANSITION_MS
     }
 }

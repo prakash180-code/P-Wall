@@ -4,6 +4,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.service.WallpaperRenderer
+import com.prakash.pwall.service.color.PremiumColors
 import com.prakash.pwall.service.motion.MotionFrame
 import com.prakash.pwall.service.motion.ParallaxMath
 import com.prakash.pwall.utils.ClockTextFormatter
@@ -41,13 +42,16 @@ object ClockBlockLayout {
         val dateText: String,
         val timePaint: Paint,
         val datePaint: Paint,
-        val layout: Layout
+        val layout: Layout,
+        val blockWidth: Float,
+        val blockHeight: Float
     )
 
     /**
      * Resolves everything both clock layers need for one frame. Called once per
      * frame (see [RenderFrame.clockBlock]) so paint allocations match the legacy
-     * renderer's two Paints per frame.
+     * renderer's two Paints per frame. [palette] feeds the dynamic colors when
+     * the user has enabled them.
      */
     fun resolve(
         canvasWidth: Float,
@@ -55,16 +59,17 @@ object ClockBlockLayout {
         settings: WallpaperSettings,
         displayDensity: Float,
         now: LocalDateTime,
-        motion: MotionFrame?
+        motion: MotionFrame?,
+        palette: com.prakash.pwall.service.color.ColorPalette? = null
     ): Block {
         val timeText = ClockTextFormatter.formatTime(
             now, settings.timeFormat, settings.showSeconds
         )
         val dateText = ClockTextFormatter.formatDate(now, settings.dateFormat)
 
-        val timePaint = timePaint(settings, displayDensity)
-        val datePaint = datePaint(settings, displayDensity)
-        val layout = compute(
+        val timePaint = timePaint(settings, displayDensity, PremiumColors.clockColor(settings, palette))
+        val datePaint = datePaint(settings, displayDensity, PremiumColors.dateColor(settings, palette))
+        val (layout, blockWidth, blockHeight) = compute(
             canvasWidth = canvasWidth,
             canvasHeight = canvasHeight,
             timeText = timeText,
@@ -79,28 +84,51 @@ object ClockBlockLayout {
             dateText = dateText,
             timePaint = timePaint,
             datePaint = datePaint,
-            layout = layout
+            layout = layout,
+            blockWidth = blockWidth,
+            blockHeight = blockHeight
         )
     }
 
-    fun timePaint(settings: WallpaperSettings, displayDensity: Float): Paint =
+    fun timePaint(
+        settings: WallpaperSettings,
+        displayDensity: Float,
+        color: Int = settings.clockColor.toInt()
+    ): Paint =
         clockPaint(
             settings = settings,
             textSize = displayDensity * settings.clockFontSizeSp,
-            color = settings.clockColor
+            color = color
         )
 
-    fun datePaint(settings: WallpaperSettings, displayDensity: Float): Paint =
+    fun datePaint(
+        settings: WallpaperSettings,
+        displayDensity: Float,
+        color: Int = settings.dateColor.toInt()
+    ): Paint =
         clockPaint(
             settings = settings,
             textSize = displayDensity * settings.clockFontSizeSp * 0.36f,
-            color = settings.dateColor
+            color = color
         )
+
+    /**
+     * A copy of [paint] whose shadow layer is replaced by the glass glow, used
+     * for the first (halo) pass of a two-pass text draw. Returns null when the
+     * glow is not configured so callers keep the single-pass fast path.
+     */
+    fun glowPaint(paint: Paint, settings: WallpaperSettings, density: Float): Paint? {
+        val radius = settings.glassGlowRadius * density
+        if (!settings.glassEnabled || radius <= 0f) return null
+        return Paint(paint).apply {
+            setShadowLayer(radius, 0f, 0f, settings.glassGlowColor.toInt())
+        }
+    }
 
     private fun clockPaint(
         settings: WallpaperSettings,
         textSize: Float,
-        color: Long
+        color: Int
     ): Paint {
         val typeface: Typeface = clockTypeface(
             settings.clockFont,
@@ -110,7 +138,9 @@ object ClockBlockLayout {
         return Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.typeface = typeface
             this.textSize = textSize
-            this.color = WallpaperRenderer.colorWithTransparency(color, settings.transparency)
+            this.color = WallpaperRenderer.colorWithTransparency(
+                color.toLong(), settings.transparency
+            )
             if (settings.shadowEnabled) {
                 setShadowLayer(
                     settings.shadowBlurRadius,
@@ -131,7 +161,7 @@ object ClockBlockLayout {
         datePaint: Paint,
         settings: WallpaperSettings,
         motion: MotionFrame?
-    ): Layout {
+    ): Triple<Layout, Float, Float> {
         val timeWidth = timePaint.measureText(timeText)
         val dateWidth = datePaint.measureText(dateText)
         val blockWidth = max(timeWidth, dateWidth)
@@ -163,11 +193,15 @@ object ClockBlockLayout {
 
         val timeBaseline = y - timeMetrics.ascent
         val dateBaseline = timeBaseline + timeHeight + gap - dateMetrics.ascent
-        return Layout(
-            x = x,
-            y = y,
-            timeBaseline = timeBaseline,
-            dateBaseline = dateBaseline
+        return Triple(
+            Layout(
+                x = x,
+                y = y,
+                timeBaseline = timeBaseline,
+                dateBaseline = dateBaseline
+            ),
+            blockWidth,
+            blockHeight
         )
     }
 

@@ -2,6 +2,55 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.0.0] - Prompt 5 (Premium UI & Effects)
+
+### Added
+- Glass Clock (`service/render/layers/GlassPanelLayer.kt`)
+  - Frosted-glass panel behind the clock: real backdrop blur (samples the
+    wallpaper region into a small cached bitmap, upscaled with filtering),
+    adjustable panel opacity, corner radius, border color + width, and a soft
+    glow behind the time
+  - Registered below the clock layer by the new `PremiumEffectsModule` via
+    `LayerSystem.insertBefore`, so the default render is unchanged whenever the
+    feature is off
+- Dynamic Colors (`service/color/`)
+  - `DominantColorExtractor`: pure, JVM-testable dominant-color extraction
+    (downsample → coarse RGB histogram → distance-based merging; fixed a
+    bucket-average bug the tests caught)
+  - `ColorPalette`: dominant / most-saturated / average luminance + readable
+    auto clock and date colors derived from the wallpaper
+  - `PremiumColors`: resolves the final per-frame text color — wallpaper-derived
+    when dynamic is enabled, the user's manual color otherwise (shared by
+    preview and engine so they always agree)
+- Micro Animations (`service/render/RenderAnimation.kt` + `ClockDraw.kt`)
+  - `TimeTransition`: 420 ms ease-out cubic cross-fade whenever the digits change
+  - `Breathing`: 4 s sine pulse with a tiny scale + alpha wobble
+  - `FrameTicker` in the service tracks the previous/current text; the render
+    loop paces at ~30 fps during a fade and ~8 fps while breathing/zooming
+  - `ClockLayer` / `DateLayer` share a two-pass glow + alpha draw
+- Cinematic Zoom (`service/effects/CinematicZoom.kt`)
+  - Pure Ken Burns math (zoom-in / zoom-out / alternate sine loop), applied as a
+    post-scale on the shared `backgroundMatrix` so the depth foreground stays
+    aligned while the camera sweeps
+- Premium Settings
+  - Four new Customize sections: Glass Clock, Dynamic Colors, Micro Animations,
+    Cinematic Zoom — full sliders, switches, color pickers and direction chips
+    backed by `CustomizeViewModel` setters + DataStore persistence
+- Previews upgraded
+  - `WallpaperPreview` now draws through the same `WallpaperRenderEngine` as the
+    live wallpaper (glass, dynamic colors, animations, zoom all visible)
+  - `ClockOverlay` gains smooth seconds, digit cross-fade, breathing and glass
+    glow in Compose
+- Unit tests: `CinematicZoomTest`, `AnimationMathTest`, `ColorPaletteTest`,
+  `DominantColorExtractorTest`, plus `insertBefore` coverage in `LayerSystemTest`
+  and `WallpaperRenderEngineTest`
+
+### Verified
+- `assembleDebug` + `testDebugUnitTest` + `lintDebug`: 0 errors
+- Unit tests: 107/107 pass (79 previous + 28 new)
+- Lint: 0 errors (dependency-version notices only, same as baseline)
+- On-device verification pending (no device attached during this pass)
+
 ## [1.0.0] - Prompt 4 (Manual Depth Editor)
 
 ### Added

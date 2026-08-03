@@ -12,6 +12,18 @@ class LayerSystem : Iterable<Layer> {
 
     fun add(layer: Layer): Boolean = layers.add(layer)
 
+    /**
+     * Inserts [layer] immediately before the layer with [targetId]. Returns
+     * false when the target does not exist, so premium modules can safely slot
+     * layers (e.g. the glass panel) beneath a core layer.
+     */
+    fun insertBefore(targetId: String, layer: Layer): Boolean {
+        val index = layers.indexOfFirst { it.id == targetId }
+        if (index < 0) return false
+        layers.add(index, layer)
+        return true
+    }
+
     fun remove(id: String): Layer? {
         val index = layers.indexOfFirst { it.id == id }
         return if (index >= 0) layers.removeAt(index) else null

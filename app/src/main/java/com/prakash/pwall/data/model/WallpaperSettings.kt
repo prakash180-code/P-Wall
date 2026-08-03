@@ -47,6 +47,13 @@ enum class ClockFont(val displayName: String, val familyName: String) {
     CURSIVE("Cursive", "cursive")
 }
 
+/** How the cinematic zoom sweeps over time. */
+enum class ZoomDirection(val displayName: String) {
+    ZOOM_IN("Zoom In"),
+    ZOOM_OUT("Zoom Out"),
+    ALTERNATE("Alternate")
+}
+
 /**
  * Immutable snapshot of every user-customizable wallpaper option.
  * Persisted via DataStore and read by both the preview and the live wallpaper.
@@ -80,7 +87,25 @@ data class WallpaperSettings(
     val parallaxSensitivity: Float = 0.5f,
     val parallaxStrength: Float = 0.5f,
     val parallaxSmoothing: Float = 0.5f,
-    val depthEnabled: Boolean = false
+    val depthEnabled: Boolean = false,
+    val glassEnabled: Boolean = false,
+    val glassBlurRadius: Float = 14f,
+    val glassPanelOpacity: Int = 35,
+    val glassCornerRadius: Float = 24f,
+    val glassBorderColor: Long = Color(0x59FFFFFF).toArgb().toLong(),
+    val glassBorderWidth: Float = 2f,
+    val glassGlowColor: Long = Color(0xFFFFF59D).toArgb().toLong(),
+    val glassGlowRadius: Float = 20f,
+    val dynamicClockColor: Boolean = false,
+    val dynamicDateColor: Boolean = false,
+    val fadeTransitionsEnabled: Boolean = true,
+    val smoothSecondsEnabled: Boolean = true,
+    val breathingEnabled: Boolean = true,
+    val breathingStrength: Float = 0.35f,
+    val zoomEnabled: Boolean = false,
+    val zoomStrength: Float = 0.5f,
+    val zoomDurationSeconds: Float = 30f,
+    val zoomDirection: ZoomDirection = ZoomDirection.ALTERNATE
 ) {
     val clockColorValue: Color
         get() = Color(clockColor)
@@ -90,4 +115,10 @@ data class WallpaperSettings(
 
     val shadowColorValue: Color
         get() = Color(shadowColor)
+
+    val glassBorderColorValue: Color
+        get() = Color(glassBorderColor)
+
+    val glassGlowColorValue: Color
+        get() = Color(glassGlowColor)
 }

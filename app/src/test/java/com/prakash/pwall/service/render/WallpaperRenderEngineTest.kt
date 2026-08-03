@@ -73,6 +73,32 @@ class WallpaperRenderEngineTest {
     }
 
     @Test
+    fun premiumEffectsModule_placesGlassPanelBelowClock() {
+        val engine = WallpaperRenderEngine()
+        engine.installModule(WallpaperCoreModule())
+        engine.installModule(PremiumEffectsModule())
+
+        assertEquals(
+            listOf("background", "glass-panel", "clock", "date", "foreground", "overlay"),
+            engine.layerIds
+        )
+    }
+
+    @Test
+    fun insertLayerBefore_missingTarget_doesNotAdd() {
+        val engine = WallpaperRenderEngine()
+        engine.installModule(WallpaperCoreModule())
+
+        val inserted = engine.insertLayerBefore("missing", NoOpLayer("ghost"))
+
+        assertEquals(false, inserted)
+        assertEquals(
+            listOf("background", "clock", "date", "foreground", "overlay"),
+            engine.layerIds
+        )
+    }
+
+    @Test
     fun removeLayer_removesById() {
         val engine = WallpaperRenderEngine()
         engine.installModule(WallpaperCoreModule())
