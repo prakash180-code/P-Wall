@@ -14,8 +14,8 @@ android {
         applicationId = "com.prakash.pwall"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -24,9 +24,21 @@ android {
     }
 
     buildTypes {
+        // Debug: fast, debuggable, unoptimized (the default). Used during
+        // development; never shipped to users.
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            isDebuggable = true
+        }
+
         release {
+            // Release: R8 + ProGuard rules, full shrinking, resource optimization,
+            // non-debuggable. This is the APK prepared for users.
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
+            isJniDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

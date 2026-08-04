@@ -2,6 +2,75 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.0.1] - Stable Release Preparation
+
+A stability, usability and release-preparation update. No features were
+removed and no behavior was rewritten.
+
+### Improvements
+- **Version bump** to `1.0.1` (versionCode 2).
+- **About screen** now shows the app version (read from the package, with a
+  `BuildConfig` fallback), the app branding, and the developer (Prakash).
+- **Icons**: the Settings card on Home uses a dedicated gear icon instead of
+  reusing the tuning icon; hero buttons use a consistent corner radius.
+- **Documented ProGuard rules** (`proguard-rules.pro`) with a comment on every
+  keep rule, covering the live-wallpaper binder glue, the render engine,
+  DataStore, ML Kit subject segmentation, the enum-name-based settings backup,
+  the settings model, Compose runtime tokens and `BuildConfig`.
+
+### Performance
+- `ClockTextFormatter` now caches the `DateTimeFormatter` instances (immutable
+  and thread-safe) instead of building them on every format call from the
+  render thread and preview.
+- Narrowed the release keep rules so R8 can still shrink unused code: the
+  release APK dropped from ~4.45 MB to **3.37 MB** while preserving all
+  required classes.
+
+### Bug Fixes
+- **Settings backup on device transfer/cloud restore**: the backup rules
+  included a `sharedpref` domain that the app does not use (settings live in
+  DataStore). `backup_rules.xml` / `data_extraction_rules.xml` now include the
+  DataStore directory, the wallpaper image and the depth-mask cache, so a
+  restored device keeps the user's settings and image.
+
+### Security
+- Release builds explicitly set `isDebuggable = false` / `isJniDebuggable =
+  false`; verified the built APK carries no `application-debuggable="true"`
+  flag.
+- Audit confirms no hardcoded secrets, API keys, or passwords in source or
+  resources (the app makes no network calls and uses an offline license).
+- Diagnostic logs are centralised in `PWallLog`; verbose `d()` output is
+  compiled out of release builds via `BuildConfig.DEBUG`.
+- R8 keeps `PWallWallpaperService` + nested classes, `WallpaperRenderEngine`,
+  DataStore, ML Kit segmentation and the enum backup machinery intact
+  (verified in the release `mapping.txt`).
+
+### Storage Improvements
+- Full storage audit: every file P-Wall writes is already in app-private
+  storage under `Android/data/com.prakash.pwall/files/` (nothing in shared
+  storage):
+  - `datastore/pwall_settings.preferences_pb` — settings (permanent)
+  - `wallpaper_images/selected_image.*` — the picked wallpaper (permanent)
+  - `depth_masks/<key>/` — AI masks + manual edits (derived cache)
+  - `profileInstalled`, `profileinstaller_*.dat`,
+    `phenotype_storage_info/` — library-managed internals (cache)
+- The files listed in the audit prompt (`ui.xml`, `ui0.xml`, `d1.xml`,
+  `rel1.xml`, `dark.xml`, `.segments`) are not created by P-Wall.
+
+### Verified
+- `assembleDebug` + `assembleRelease` + `testDebugUnitTest` + `lintDebug`:
+  0 errors. Unit tests **156/156** pass; lint 0 errors / 15 warnings
+  (baseline unchanged).
+- Release APK (R8 + ProGuard + shrinkResources + resource optimization):
+  3.37 MB, versionName 1.0.1, versionCode 2, not debuggable.
+- On-device release validation (API 33 physical device):
+  - APK installs and launches; all five screens navigate without crashes
+  - Live wallpaper applied; `pwall-motion` + `pwall-renderer` threads active
+    on the home screen; clock/date overlay live; no FATAL/ANR
+  - AI Depth toggles on/off without crashing (masks cached on disk); parallax
+    debug overlay + settings persist via DataStore
+- Git tag `v1.0.1` pushed to `origin/main`.
+
 ## [2.0.0] - Prompt 7 (Full UI Redesign)
 
 ### Added

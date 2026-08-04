@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
+    <!-- User settings live in DataStore (files/datastore), not SharedPreferences. -->
+    <include domain="file" path="datastore" />
+    <!-- The selected wallpaper image. -->
     <include domain="file" path="wallpaper_images" />
-    <include domain="sharedpref" path="." />
+    <!-- Cached AI-depth masks: regenerable, but cheap to restore, so include them. -->
+    <include domain="file" path="depth_masks" />
 </full-backup-content>

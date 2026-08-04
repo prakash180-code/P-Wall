@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -208,7 +209,7 @@ private fun HomeScreen(
                 ColorfulActionCard(
                     title = "Settings",
                     subtitle = "Theme, backup & more",
-                    icon = PWallIcons.Tune,
+                    icon = Icons.Filled.Settings,
                     color = Color(0xFF386A20),
                     onClick = onOpenSettings
                 )
@@ -262,7 +263,7 @@ private fun PhoneFrameHero(
             Button(
                 onClick = onSelectImage,
                 enabled = !uiState.isSavingImage,
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Text(if (uiState.settings.selectedImagePath == null) "Select Image" else "Change Image")
             }

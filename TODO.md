@@ -1,6 +1,24 @@
 # P-Wall — Roadmap
 
-Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–7 are complete.**
+Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–8 are complete.**
+
+## Prompt 8 — Stable Release Preparation (v1.0.1) ✅ DONE
+- [x] Version bump: versionName 1.0.1, versionCode 2
+- [x] Release build hardening: explicit `isDebuggable=false`, R8 + ProGuard +
+      shrinkResources + resource optimization; debug build left unoptimized
+- [x] Documented `proguard-rules.pro` (wallpaper binder glue, render engine,
+      DataStore, ML Kit, enum-name backup, settings model, Compose, BuildConfig)
+- [x] Security audit: non-debuggable release APK verified; no secrets/keys;
+      verbose logs compiled out of release via BuildConfig.DEBUG
+- [x] Storage audit: all files app-private under files/ (datastore, image,
+      depth masks, library caches); backup rules fixed to include DataStore
+- [x] Performance: `ClockTextFormatter` formatter cache; release APK
+      4.45 MB → 3.37 MB via narrower keep rules
+- [x] UI polish: About screen (version + developer), dedicated Settings icon,
+      consistent button corner radius
+- [x] 156/156 tests, 0 lint errors; on-device release validation passed
+      (install, screens, live wallpaper threads, AI depth, DataStore)
+- [x] Tag v1.0.1 pushed to origin/main
 
 ## Prompt 7 — Full UI Redesign ✅ DONE
 - [x] Bottom-navigation shell: Home / Clock / Effects / Background / Settings

@@ -18,6 +18,19 @@ import java.util.Locale
  */
 object ClockTextFormatter {
 
+    /**
+     * Formatters are expensive to build and are requested at least once per
+     * second from the render thread and the preview. They are immutable and
+     * thread-safe, so cache them by pattern instead of rebuilding. The cache is
+     * small (a handful of patterns per locale) and unbounded-safe in practice.
+     */
+    private val formatterCache = mutableMapOf<String, DateTimeFormatter>()
+
+    private fun formatterFor(pattern: String): DateTimeFormatter =
+        formatterCache.getOrPut(pattern) {
+            DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
+        }
+
     private fun timeFormatter(timeFormat: TimeFormat, showSeconds: Boolean): DateTimeFormatter {
         val pattern = when {
             timeFormat.is24Hour && showSeconds -> "HH:mm:ss"
@@ -25,7 +38,7 @@ object ClockTextFormatter {
             showSeconds -> "h:mm:ss a"
             else -> "h:mm a"
         }
-        return DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
+        return formatterFor(pattern)
     }
 
     fun formatTime(
@@ -35,7 +48,7 @@ object ClockTextFormatter {
     ): String = timeFormatter(timeFormat, showSeconds).format(now)
 
     fun formatDate(now: LocalDateTime, dateFormat: DateFormat): String =
-        DateTimeFormatter.ofPattern(dateFormat.pattern, Locale.getDefault()).format(now)
+        formatterFor(dateFormat.pattern).format(now)
 
     /**
      * Layout-aware clock text. For [ClockLayout.HORIZONTAL] this matches
@@ -60,9 +73,9 @@ object ClockTextFormatter {
         layout: ClockLayout
     ): List<String> {
         val hourFormatter = if (timeFormat.is24Hour) {
-            DateTimeFormatter.ofPattern("HH", Locale.getDefault())
+            formatterFor("HH")
         } else {
-            DateTimeFormatter.ofPattern("hh", Locale.getDefault())
+            formatterFor("hh")
         }
         val hh = hourFormatter.format(now)
         val mm = now.minute.toString().padStart(2, '0')

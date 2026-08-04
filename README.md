@@ -2,12 +2,14 @@
 
 **P-Wall** is a modern Android Live Wallpaper application that turns any image from your device into a beautiful live wallpaper with a real-time digital clock, date, and day overlay — fully customizable.
 
+- **Version:** 1.0.1 (stable)
 - **Package:** `com.prakash.pwall`
 - **Min SDK:** 29 (Android 10)
 - **Target SDK:** 36 (Android 16)
 - **Language:** Kotlin
 - **UI:** Jetpack Compose + Material 3 (no XML layouts)
 - **Architecture:** Clean Architecture + MVVM + StateFlow + Repository Pattern
+- **Developer:** Prakash
 
 ## Features
 
@@ -51,7 +53,12 @@
     from the wallpaper's dominant color
   - Backup/restore settings as a JSON snapshot, storage usage view, one-tap
     reset to defaults
+- App-private storage only: the wallpaper image, all settings and the AI-depth
+  masks live under `Android/data/com.prakash.pwall/files/` — nothing is written
+  to shared storage (see [Storage](#storage))
 - Dark / Light Material 3 theme (follows the system)
+- Release build: R8 + ProGuard + resource shrinking, non-debuggable,
+  no secrets in the APK
 - All settings persisted with DataStore Preferences (restored automatically)
 - R8-optimized release build (~3 MB) with resource shrinking
 - Production performance & memory optimization (see below)
@@ -215,6 +222,23 @@ Prompt 6 hardened the render path for low-end hardware and battery life:
   canvas is preferred with automatic software fallback; `PWallLog` centralizes
   diagnostics (debug-only verbose output).
 
+## Storage
+
+Everything P-Wall writes lives in **app-private storage** under
+`Android/data/com.prakash.pwall/files/` — no permissions are needed and nothing
+clutters shared storage.
+
+| Path                        | Content                              | Class   |
+|-----------------------------|--------------------------------------|---------|
+| `datastore/pwall_settings.preferences_pb` | All user settings (DataStore) | Permanent |
+| `wallpaper_images/selected_image.*`       | The picked wallpaper image   | Permanent |
+| `depth_masks/<key>/*.png`                 | AI masks + manual edits      | Derived cache |
+| `profileInstalled`, `profileinstaller_*.dat` | AndroidX profile installer  | Library cache |
+| `phenotype_storage_info/`                 | Play-services bookkeeping     | Library cache |
+
+Cloud backup / device-transfer rules include the settings, the wallpaper image
+and the depth-mask cache, so a restored device keeps the user's setup.
+
 ## Tech Stack
 
 | Concern        | Choice                                              |
@@ -255,11 +279,21 @@ gradlew.bat :app:lintDebug
 
 # Release APK
 gradlew.bat :app:assembleRelease
-# output: app/build/outputs/apk/release/app-release.apk (~3 MB, R8 + shrinkResources)
+# output: app/build/outputs/apk/release/app-release.apk (~3.4 MB, R8 + shrinkResources)
 ```
 
 > **Note:** the release build currently signs with the debug key as a
 > placeholder. Configure a real signing config before publishing.
+
+## Release Notes
+
+See [CHANGELOG.md](CHANGELOG.md) for the full history. Highlights of the
+**1.0.1** stable release: documented ProGuard rules, release hardening
+(non-debuggable, no secrets, debug logs compiled out), a settings-backup fix
+for device transfer, a performance pass (formatter caching, smaller APK), an
+updated About screen, and a complete storage audit. On-device release
+validation: install, five-screen navigation, live wallpaper render threads,
+AI Depth toggle and DataStore persistence all verified with no crashes.
 
 ## Roadmap
 
