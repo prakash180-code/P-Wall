@@ -155,7 +155,8 @@ fun WallpaperPreview(
                             palette = palette,
                             timeTransition = timeTransition,
                             breathing = breathing,
-                            cinematicZoom = cinematicZoom
+                            cinematicZoom = cinematicZoom,
+                            paintCache = engine.paintCache
                         )
                     )
                 }

@@ -30,12 +30,20 @@ object ImageLoader {
     }
 
     /** Decodes [path] downscaled so the longest edge is at most [MAX_DIMENSION]. */
-    fun decodeSampled(path: String): Bitmap? {
+    fun decodeSampled(path: String): Bitmap? =
+        decodeSampled(path, MAX_DIMENSION)
+
+    /**
+     * Decodes [path] downscaled so the longest edge is at most [maxDimension].
+     * Low-end devices pass [com.prakash.pwall.service.performance.LowEndDevice.LOW_END_MAX_DIMENSION]
+     * to keep the decoded wallpaper within a smaller memory budget.
+     */
+    fun decodeSampled(path: String, maxDimension: Int): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(path, bounds)
         var sampleSize = 1
-        while (bounds.outWidth / (sampleSize * 2) >= MAX_DIMENSION ||
-            bounds.outHeight / (sampleSize * 2) >= MAX_DIMENSION
+        while (bounds.outWidth / (sampleSize * 2) >= maxDimension ||
+            bounds.outHeight / (sampleSize * 2) >= maxDimension
         ) {
             sampleSize *= 2
         }

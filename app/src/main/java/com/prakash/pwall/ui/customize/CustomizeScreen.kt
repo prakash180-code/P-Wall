@@ -74,6 +74,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.DateFormat
+import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.WallpaperSettings
@@ -212,6 +213,7 @@ private fun CustomizeScreen(
                 item { DynamicColorsSection(settings, viewModel) }
                 item { AnimationSection(settings, viewModel) }
                 item { CinematicZoomSection(settings, viewModel) }
+                item { PerformanceSection(settings, viewModel) }
                 item {
                     Button(
                         onClick = { launchWallpaperPicker(context) },
@@ -1041,6 +1043,22 @@ private fun CinematicZoomSection(settings: WallpaperSettings, vm: CustomizeViewM
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun PerformanceSection(settings: WallpaperSettings, vm: CustomizeViewModel) {
+    SectionCard("Performance") {
+        Text(
+            text = "Low-end mode disables the heavy per-frame effects (blur, breathing, " +
+                "zoom, transitions, shadows) and decodes the wallpaper smaller, so the " +
+                "wallpaper stays smooth on weak hardware or while saving battery.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        ChipRow(
+            options = LowEndPreference.entries.map { it.displayName to (it == settings.lowEnd) }
+        ) { index -> vm.setLowEnd(LowEndPreference.entries[index]) }
     }
 }
 

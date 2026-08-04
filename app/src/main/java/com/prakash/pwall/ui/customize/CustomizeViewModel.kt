@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.DateFormat
+import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.WallpaperSettings
@@ -153,6 +154,8 @@ class CustomizeViewModel(
     }
 
     fun setZoomDirection(direction: ZoomDirection) = update { it.copy(zoomDirection = direction) }
+
+    fun setLowEnd(preference: LowEndPreference) = update { it.copy(lowEnd = preference) }
 
     private fun update(transform: (WallpaperSettings) -> WallpaperSettings) {
         viewModelScope.launch { settingsRepository.updateSettings(transform) }

@@ -8,6 +8,7 @@ import com.prakash.pwall.service.color.PremiumColors
 import com.prakash.pwall.service.motion.MotionFrame
 import com.prakash.pwall.service.motion.ParallaxMath
 import com.prakash.pwall.utils.ClockTextFormatter
+import com.prakash.pwall.utils.PaintCache
 import com.prakash.pwall.utils.clampBlockTopLeft
 import com.prakash.pwall.utils.clockTypeface
 import java.time.LocalDateTime
@@ -42,6 +43,8 @@ object ClockBlockLayout {
         val dateText: String,
         val timePaint: Paint,
         val datePaint: Paint,
+        val glowTime: Paint?,
+        val glowDate: Paint?,
         val layout: Layout,
         val blockWidth: Float,
         val blockHeight: Float
@@ -49,9 +52,11 @@ object ClockBlockLayout {
 
     /**
      * Resolves everything both clock layers need for one frame. Called once per
-     * frame (see [RenderFrame.clockBlock]) so paint allocations match the legacy
-     * renderer's two Paints per frame. [palette] feeds the dynamic colors when
-     * the user has enabled them.
+     * frame (see [RenderFrame.clockBlock]). Paints are reused from [paintCache]
+     * (keyed by an exact configuration signature) instead of being re-created
+     * every frame; when no cache is supplied fresh paints are allocated, so the
+     * legacy [WallpaperRenderer] and preview paths stay byte-identical.
+     * [palette] feeds the dynamic colors when the user has enabled them.
      */
     fun resolve(
         canvasWidth: Float,
@@ -60,15 +65,20 @@ object ClockBlockLayout {
         displayDensity: Float,
         now: LocalDateTime,
         motion: MotionFrame?,
-        palette: com.prakash.pwall.service.color.ColorPalette? = null
+        palette: com.prakash.pwall.service.color.ColorPalette? = null,
+        paintCache: PaintCache? = null
     ): Block {
         val timeText = ClockTextFormatter.formatTime(
             now, settings.timeFormat, settings.showSeconds
         )
         val dateText = ClockTextFormatter.formatDate(now, settings.dateFormat)
 
-        val timePaint = timePaint(settings, displayDensity, PremiumColors.clockColor(settings, palette))
-        val datePaint = datePaint(settings, displayDensity, PremiumColors.dateColor(settings, palette))
+        val clockColor = PremiumColors.clockColor(settings, palette)
+        val dateColor = PremiumColors.dateColor(settings, palette)
+        val timePaint = timePaint(settings, displayDensity, clockColor, paintCache)
+        val datePaint = datePaint(settings, displayDensity, dateColor, paintCache)
+        val glowTime = glowPaint(timePaint, settings, displayDensity, clockColor, "clock", paintCache)
+        val glowDate = glowPaint(datePaint, settings, displayDensity, dateColor, "date", paintCache)
         val (layout, blockWidth, blockHeight) = compute(
             canvasWidth = canvasWidth,
             canvasHeight = canvasHeight,
@@ -84,6 +94,8 @@ object ClockBlockLayout {
             dateText = dateText,
             timePaint = timePaint,
             datePaint = datePaint,
+            glowTime = glowTime,
+            glowDate = glowDate,
             layout = layout,
             blockWidth = blockWidth,
             blockHeight = blockHeight
@@ -93,39 +105,74 @@ object ClockBlockLayout {
     fun timePaint(
         settings: WallpaperSettings,
         displayDensity: Float,
-        color: Int = settings.clockColor.toInt()
+        color: Int = settings.clockColor.toInt(),
+        paintCache: PaintCache? = null
     ): Paint =
         clockPaint(
             settings = settings,
             textSize = displayDensity * settings.clockFontSizeSp,
-            color = color
+            color = color,
+            paintCache = paintCache
         )
 
     fun datePaint(
         settings: WallpaperSettings,
         displayDensity: Float,
-        color: Int = settings.dateColor.toInt()
+        color: Int = settings.dateColor.toInt(),
+        paintCache: PaintCache? = null
     ): Paint =
         clockPaint(
             settings = settings,
             textSize = displayDensity * settings.clockFontSizeSp * 0.36f,
-            color = color
+            color = color,
+            paintCache = paintCache
         )
 
     /**
-     * A copy of [paint] whose shadow layer is replaced by the glass glow, used
-     * for the first (halo) pass of a two-pass text draw. Returns null when the
+     * The soft glow (halo) paint drawn under the crisp text when the glass
+     * feature is enabled. Derived from a base text paint; cached alongside it so
+     * the halo pass costs nothing after the first frame. Returns null when the
      * glow is not configured so callers keep the single-pass fast path.
      */
-    fun glowPaint(paint: Paint, settings: WallpaperSettings, density: Float): Paint? {
+    fun glowPaint(
+        paint: Paint,
+        settings: WallpaperSettings,
+        density: Float,
+        color: Int = paint.color,
+        purpose: String = "text",
+        paintCache: PaintCache? = null
+    ): Paint? {
         val radius = settings.glassGlowRadius * density
         if (!settings.glassEnabled || radius <= 0f) return null
+        val key = PaintKey.glow(settings, paint.textSize, color, radius, purpose)
+        if (paintCache != null) {
+            return paintCache.get(key) {
+                Paint(paint).apply {
+                    setShadowLayer(radius, 0f, 0f, settings.glassGlowColor.toInt())
+                }
+            }
+        }
         return Paint(paint).apply {
             setShadowLayer(radius, 0f, 0f, settings.glassGlowColor.toInt())
         }
     }
 
     private fun clockPaint(
+        settings: WallpaperSettings,
+        textSize: Float,
+        color: Int,
+        paintCache: PaintCache? = null
+    ): Paint {
+        if (paintCache != null) {
+            val key = PaintKey.textKey("clock", settings, textSize, color)
+            return paintCache.get(key) {
+                buildClockPaint(settings, textSize, color)
+            }
+        }
+        return buildClockPaint(settings, textSize, color)
+    }
+
+    private fun buildClockPaint(
         settings: WallpaperSettings,
         textSize: Float,
         color: Int

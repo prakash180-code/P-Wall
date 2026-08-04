@@ -2,6 +2,58 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.1.0] - Prompt 6 (Production Optimization)
+
+### Added
+- Paint cache (`utils/PaintCache.kt` + `service/render/PaintKey.kt`)
+  - Per-engine, bounded, thread-safe paint reuse keyed by an exact
+    configuration signature; `ClockBlockLayout` now reuses the clock/date/glow
+    paints instead of allocating them every frame
+  - The glass glow paints are resolved once per frame in the shared clock
+    `Block` and reused by both the clock and date layers (2 fewer allocations
+    per frame after the first)
+- Performance logic (`service/performance/`)
+  - `FramePacer`: pure, battery-aware frame pacing (parallax moving ~30 fps,
+    settling ~5 fps, idle 1 fps; ~30 fps during cross-fades; ~8 fps breathing/
+    zoom; always 1 fps in low-end mode)
+  - `FrameDirtyChecker`: skips a frame when nothing that affects pixels changed;
+    the key is only recorded after the frame is actually posted, so a failed
+    surface lock never causes a missed redraw
+  - `LowEndDevice`: resolves the low-end profile from the new `lowEnd` setting
+    (Auto/On/Off) + the device memory class / low-RAM flag, and derives the
+    "effective" settings (heavy per-frame effects disabled)
+  - `RenderGuard` (`service/render/`): circuit breaker that drops a layer after
+    repeated draw exceptions so one bad layer cannot crash the render thread
+- Render engine hardening (`WallpaperRenderEngine`)
+  - Per-engine `PaintCache` (preview and wallpaper never share paints across
+    threads), per-layer circuit breaker with logging, and `release()` to free
+    native resources held by `Releasable` layers
+  - `GlassPanelLayer` now caches its panel/border paints and round-rect clip
+    path, and implements `Releasable` (scratch bitmaps recycled on destroy)
+- Memory optimization
+  - `BitmapCache` sized from the ActivityManager memory class (~1/8, 16–48 MB
+    bounds) with a `trim()` half-eviction and `configure()` re-size
+  - `PWallApplication.onTrimMemory` trims/clears the bitmap cache at the
+    appropriate memory levels
+  - Low-end devices decode the wallpaper at a reduced cap
+    (`LowEndDevice.LOW_END_MAX_DIMENSION` = 1280) via the new
+    `ImageLoader.decodeSampled(path, maxDimension)`
+- Render-loop optimization (`PWallWallpaperService`)
+  - Hardware canvas (`lockHardwareCanvas`, API 30+) with software fallback
+  - Render-loop backoff (2 s sleep after 5 consecutive failed frames)
+  - Lifecycle logging via `PWallLog`
+- Settings/UI: `LowEndPreference` model + DataStore persistence + `setLowEnd`
+  ViewModel setter + a new "Performance" section in Customize (Auto/On/Off chips)
+- Unit tests: `FramePacerTest`, `FrameDirtyCheckerTest`, `LowEndDeviceTest`,
+  `RenderGuardTest`, `PaintKeyTest`
+
+### Verified
+- `assembleDebug` + `testDebugUnitTest` + `lintDebug`: 0 errors
+- Unit tests: 143/143 pass (107 previous + 36 new)
+- Lint: 0 errors, 15 warnings, 4 hints (baseline unchanged)
+- Release APK: `app/build/outputs/apk/release/app-release.apk` (3.24 MB,
+  R8 + shrinkResources)
+
 ## [1.0.0] - Prompt 5 (Premium UI & Effects)
 
 ### Added

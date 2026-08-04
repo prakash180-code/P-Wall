@@ -3,7 +3,6 @@ package com.prakash.pwall.service.render.layers
 import android.annotation.SuppressLint
 import android.graphics.Canvas
 import android.graphics.Paint
-import com.prakash.pwall.service.render.ClockBlockLayout
 import com.prakash.pwall.service.render.ClockDraw
 import com.prakash.pwall.service.render.Layer
 import com.prakash.pwall.service.render.RenderFrame
@@ -32,7 +31,7 @@ class DateLayer : Layer {
             canvas.scale(breathing.scale, breathing.scale, cx, cy)
         }
         val baseAlpha = frame.breathing?.alpha ?: 1f
-        val glow = ClockBlockLayout.glowPaint(block.datePaint, frame.settings, frame.displayDensity)
+        val glow = block.glowDate
         val transition = frame.timeTransition
 
         val newAlpha = baseAlpha * (transition?.progress ?: 1f)

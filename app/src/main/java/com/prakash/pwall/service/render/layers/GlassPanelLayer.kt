@@ -10,20 +10,22 @@ import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.RectF
 import com.prakash.pwall.service.render.Layer
+import com.prakash.pwall.service.render.Releasable
 import com.prakash.pwall.service.render.RenderFrame
 
 /**
  * Frosted-glass panel behind the clock block (premium "Glass Clock"). Draws a
  * real backdrop blur by sampling the wallpaper region behind the block into a
  * small scratch bitmap and upscaling it, then composites a translucent panel
- * fill and an optional border. The scratch/upscaled bitmaps are cached and
- * reused so per-frame cost stays tiny (no allocations after the first frame).
+ * fill and an optional border. The scratch/upscaled bitmaps, the paints and the
+ * clip path are all cached and reused so per-frame cost stays tiny (no
+ * allocations after the first frame with identical settings/layout).
  *
  * Registers immediately below the clock layer so the depth foreground still
  * renders on top (the clock, panel included, stays behind the subject).
  */
 @SuppressLint("UseKtx")
-class GlassPanelLayer : Layer {
+class GlassPanelLayer : Layer, Releasable {
 
     override val id: String = "glass-panel"
 
@@ -32,6 +34,9 @@ class GlassPanelLayer : Layer {
     private var cachedKey: Pair<Int, Int>? = null
 
     private val filterPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+
+    private var clipPath: Path? = null
+    private var clipKey: String? = null
 
     override fun draw(canvas: Canvas, frame: RenderFrame) {
         val settings = frame.settings
@@ -52,9 +57,7 @@ class GlassPanelLayer : Layer {
         )
 
         canvas.save()
-        val clip = Path().apply {
-            addRoundRect(rect, corner, corner, Path.Direction.CW)
-        }
+        val clip = clipPath(rect, corner)
         canvas.clipPath(clip)
 
         if (frame.backgroundBitmap != null && settings.glassBlurRadius > 0f) {
@@ -62,20 +65,48 @@ class GlassPanelLayer : Layer {
         }
 
         val panelAlpha = (0xFF * settings.glassPanelOpacity.coerceIn(0, 100) / 100)
-        val panelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val panelPaint = frame.paintCache?.get("glass-panel|fill|$panelAlpha") {
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.argb(panelAlpha, 0xFF, 0xFF, 0xFF)
+            }
+        } ?: Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.argb(panelAlpha, 0xFF, 0xFF, 0xFF)
         }
         canvas.drawRoundRect(rect, corner, corner, panelPaint)
 
         if (settings.glassBorderWidth > 0f) {
-            val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            val borderWidth = settings.glassBorderWidth * density
+            val borderKey = "glass-panel|border|$borderWidth|${settings.glassBorderColor.toInt()}"
+            val borderPaint = frame.paintCache?.get(borderKey) {
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = borderWidth
+                    color = settings.glassBorderColor.toInt()
+                }
+            } ?: Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                strokeWidth = settings.glassBorderWidth * density
+                strokeWidth = borderWidth
                 color = settings.glassBorderColor.toInt()
             }
             canvas.drawRoundRect(rect, corner, corner, borderPaint)
         }
         canvas.restore()
+    }
+
+    /**
+     * Reuses the rounded-rect clip path while the panel geometry is unchanged;
+     * a fresh path is built only when the block moved or a setting changed.
+     */
+    private fun clipPath(rect: RectF, corner: Float): Path {
+        val key = "clip|${rect.left}|${rect.top}|${rect.right}|${rect.bottom}|$corner"
+        val existing = clipPath
+        if (existing != null && key == clipKey) return existing
+        val path = Path().apply {
+            addRoundRect(rect, corner, corner, Path.Direction.CW)
+        }
+        clipPath = path
+        clipKey = key
+        return path
     }
 
     /**
@@ -130,5 +161,15 @@ class GlassPanelLayer : Layer {
             cachedKey = key
         }
         return (sample to output)
+    }
+
+    override fun release() {
+        scratch?.recycle()
+        scratch = null
+        blurOut?.recycle()
+        blurOut = null
+        cachedKey = null
+        clipPath = null
+        clipKey = null
     }
 }

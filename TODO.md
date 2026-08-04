@@ -1,6 +1,26 @@
 # P-Wall — Roadmap
 
-Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–5 are complete.**
+Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–6 are complete.**
+
+## Prompt 6 — Production Optimization ✅ DONE
+- [x] Paint cache: `PaintCache` + `PaintKey` reuse the clock/date/glow paints and
+      glass panel paints/path across frames (keyed by configuration signature)
+- [x] Frame pacing: pure `FramePacer` (30 fps moving / 5 fps settling / 1 fps
+      idle / 8 fps breathing+zoom / 1 fps low-end)
+- [x] Frame dirty-check: `FrameDirtyChecker` skips unchanged frames (key recorded
+      only after a successful post)
+- [x] Low-end device mode: `LowEndDevice` + `LowEndPreference` (Auto/On/Off) in
+      a new Customize "Performance" section; disables heavy effects and decodes
+      the wallpaper at a smaller cap
+- [x] Memory optimization: `BitmapCache` memory-class sizing + `onTrimMemory`
+      trim/clear; glass layer `Releasable` scratch-bitmap recycling
+- [x] Render engine hardening: per-engine paint cache, per-layer circuit breaker
+      (`RenderGuard`), `release()`, hardware canvas with software fallback,
+      render-loop backoff, `PWallLog` diagnostics
+- [x] Future architecture reserved (not implemented): weather, particles, music
+      controls, battery widget, calendar overlays, GIF/video wallpapers
+- [x] 143/143 tests (36 new), 0 lint errors (baseline 15 warnings / 4 hints),
+      release APK builds (3.24 MB)
 
 ## Prompt 5 — Premium UI & Effects ✅ DONE
 - [x] Glass Clock: frosted-glass panel behind the clock with real backdrop blur,
@@ -128,12 +148,16 @@ Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–5 are comp
 - [x] Foundation for premium modules (next: 3D parallax, depth engine)
 
 ## Future Ideas (architecture reserved, not implemented now)
+- Weather overlay (new `OverlayLayer`/module — data source pluggable)
+- Particle effects (new layer/effect module)
+- Music controls / media overlay (new layer; media session client)
+- Battery widget (new overlay layer)
+- Calendar overlay (new overlay layer)
+- Animated / GIF / video wallpapers (image-source abstraction swappable in the engine)
 - Brush / Eraser / Polygon selection in the depth editor (alpha-buffer model ready)
+- Multiple clocks, analog / neon / flip clock
 - Production signing config (keystore) before publishing
 - Supabase licensing / activation
-- Premium features (weather / battery / calendar overlays) — new layers/effects
-- Multiple clocks, analog / neon / flip clock
-- Animated / GIF / video wallpapers
 - Theme packs
 - Cloud backup
 

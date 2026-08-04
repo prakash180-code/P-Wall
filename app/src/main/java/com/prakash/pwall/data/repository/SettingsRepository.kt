@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.DateFormat
+import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.WallpaperSettings
@@ -100,7 +101,9 @@ class SettingsRepository(
             zoomStrength = floatPreference(ZOOM_STRENGTH, 0.5f),
             zoomDurationSeconds = floatPreference(ZOOM_DURATION_SECONDS, 30f),
             zoomDirection = ZoomDirection.entries.firstOrNull { it.name == stringPreference(ZOOM_DIRECTION) }
-                ?: WallpaperSettings().zoomDirection
+                ?: WallpaperSettings().zoomDirection,
+            lowEnd = LowEndPreference.entries.firstOrNull { it.name == stringPreference(LOW_END) }
+                ?: WallpaperSettings().lowEnd
         )
     }
 
@@ -151,6 +154,7 @@ class SettingsRepository(
         prefs[floatPreferencesKey(ZOOM_STRENGTH)] = zoomStrength
         prefs[floatPreferencesKey(ZOOM_DURATION_SECONDS)] = zoomDurationSeconds
         prefs[stringPreferencesKey(ZOOM_DIRECTION)] = zoomDirection.name
+        prefs[stringPreferencesKey(LOW_END)] = lowEnd.name
     }
 
     private fun Preferences.stringPreference(key: String): String? = this[stringPreferencesKey(key)]
@@ -213,5 +217,6 @@ class SettingsRepository(
         const val ZOOM_STRENGTH = "zoom_strength"
         const val ZOOM_DURATION_SECONDS = "zoom_duration_seconds"
         const val ZOOM_DIRECTION = "zoom_direction"
+        const val LOW_END = "low_end"
     }
 }

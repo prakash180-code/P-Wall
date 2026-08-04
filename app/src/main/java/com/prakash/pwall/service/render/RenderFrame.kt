@@ -7,6 +7,7 @@ import com.prakash.pwall.service.WallpaperRenderer
 import com.prakash.pwall.service.color.ColorPalette
 import com.prakash.pwall.service.motion.MotionFrame
 import com.prakash.pwall.service.motion.ParallaxMath
+import com.prakash.pwall.utils.PaintCache
 import java.time.LocalDateTime
 import kotlin.math.min
 
@@ -33,7 +34,8 @@ data class RenderFrame(
     val palette: ColorPalette? = null,
     val timeTransition: TimeTransition? = null,
     val breathing: Breathing? = null,
-    val cinematicZoom: Float = 1f
+    val cinematicZoom: Float = 1f,
+    val paintCache: PaintCache? = null
 ) {
     val clockBlock: ClockBlockLayout.Block by lazy {
         ClockBlockLayout.resolve(
@@ -43,7 +45,8 @@ data class RenderFrame(
             displayDensity = displayDensity,
             now = now,
             motion = motion,
-            palette = palette
+            palette = palette,
+            paintCache = paintCache
         )
     }
 

@@ -55,6 +55,16 @@ enum class ZoomDirection(val displayName: String) {
 }
 
 /**
+ * User control over the low-end performance mode. AUTO applies it only on
+ * low-RAM / low-memory-class devices; ON/OFF force it regardless of hardware.
+ */
+enum class LowEndPreference(val displayName: String) {
+    AUTO("Auto"),
+    ON("On"),
+    OFF("Off")
+}
+
+/**
  * Immutable snapshot of every user-customizable wallpaper option.
  * Persisted via DataStore and read by both the preview and the live wallpaper.
  */
@@ -105,7 +115,8 @@ data class WallpaperSettings(
     val zoomEnabled: Boolean = false,
     val zoomStrength: Float = 0.5f,
     val zoomDurationSeconds: Float = 30f,
-    val zoomDirection: ZoomDirection = ZoomDirection.ALTERNATE
+    val zoomDirection: ZoomDirection = ZoomDirection.ALTERNATE,
+    val lowEnd: LowEndPreference = LowEndPreference.AUTO
 ) {
     val clockColorValue: Color
         get() = Color(clockColor)

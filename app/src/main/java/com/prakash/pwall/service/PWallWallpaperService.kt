@@ -1,6 +1,7 @@
 package com.prakash.pwall.service
 
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.SystemClock
 import android.service.wallpaper.WallpaperService
 import android.view.SurfaceHolder
@@ -14,6 +15,9 @@ import com.prakash.pwall.service.depth.DiskMaskStore
 import com.prakash.pwall.service.depth.MlKitSubjectSegmenter
 import com.prakash.pwall.service.effects.CinematicZoom
 import com.prakash.pwall.service.motion.ParallaxController
+import com.prakash.pwall.service.performance.FrameDirtyChecker
+import com.prakash.pwall.service.performance.FramePacer
+import com.prakash.pwall.service.performance.LowEndDevice
 import com.prakash.pwall.service.render.AnimationMath
 import com.prakash.pwall.service.render.Breathing
 import com.prakash.pwall.service.render.PremiumEffectsModule
@@ -24,6 +28,7 @@ import com.prakash.pwall.service.render.WallpaperRenderEngine
 import com.prakash.pwall.utils.BitmapCache
 import com.prakash.pwall.utils.ClockTextFormatter
 import com.prakash.pwall.utils.ImageLoader
+import com.prakash.pwall.utils.PWallLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,20 +38,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
-/** ~30 fps during movement. */
-private const val PARALLAX_FRAME_MS = 33L
-
-/** ~5 fps while the device settles after movement. */
-private const val SETTLING_FRAME_MS = 200L
-
-/** After this long without movement, drop to the 1 fps clock loop. */
-private const val IDLE_SETTLE_MS = 5000L
-
-/** ~30 fps during a text cross-fade. */
-private const val ANIMATION_FRAME_MS = 33L
-
-/** ~8 fps for the continuous breathing / cinematic zoom sweep. */
-private const val BREATHING_FRAME_MS = 125L
+/** Backoff sleep when the render thread keeps failing to draw a frame. */
+private const val RENDER_FAILURE_BACKOFF_MS = 2000L
 
 /**
  * Live wallpaper engine. Renders the selected image with a real-time clock and
@@ -67,6 +60,10 @@ class PWallWallpaperService : WallpaperService() {
         @Volatile
         private var settings: WallpaperSettings = WallpaperSettings()
 
+        /** True while the low-end performance profile is active. */
+        @Volatile
+        private var lowEnd: Boolean = false
+
         @Volatile
         private var selectedBitmap: Bitmap? = null
         private var loadedPath: String? = null
@@ -76,6 +73,9 @@ class PWallWallpaperService : WallpaperService() {
 
         private var decodeJob: Job? = null
         private var renderThread: Thread? = null
+
+        private val dirtyChecker = FrameDirtyChecker()
+        private var consecutiveRenderFailures = 0
 
         /** Dominant colors of the current image, for the dynamic colors feature. */
         private var palette: ColorPalette? = null
@@ -105,9 +105,11 @@ class PWallWallpaperService : WallpaperService() {
         override fun onCreate(holder: SurfaceHolder) {
             super.onCreate(holder)
             surfaceHolder = holder
+            PWallLog.i("Engine created")
             scope.launch {
                 container.settingsRepository.settings.collect { newSettings ->
                     settings = newSettings
+                    updateLowEnd()
                     parallaxController.updateSettings(newSettings)
                     if (depthEngine.updateSettings(newSettings)) {
                         runDepthForCurrentImage()
@@ -125,10 +127,12 @@ class PWallWallpaperService : WallpaperService() {
         }
 
         override fun onDestroy() {
+            PWallLog.i("Engine destroyed")
             stopRenderThread()
             parallaxController.stop()
             depthEngine.close()
             decodeJob?.cancel()
+            renderEngine.release()
             scope.cancel()
             super.onDestroy()
         }
@@ -137,6 +141,7 @@ class PWallWallpaperService : WallpaperService() {
             super.onSurfaceCreated(holder)
             surfaceHolder = holder
             startRenderThread()
+            PWallLog.d("Surface created")
         }
 
         override fun onSurfaceChanged(
@@ -148,17 +153,21 @@ class PWallWallpaperService : WallpaperService() {
             super.onSurfaceChanged(holder, format, width, height)
             surfaceWidth = width
             surfaceHeight = height
+            dirtyChecker.invalidate()
             renderOnce()
         }
 
         override fun onSurfaceRedrawNeeded(holder: SurfaceHolder) {
             super.onSurfaceRedrawNeeded(holder)
+            dirtyChecker.invalidate()
             renderOnce()
         }
 
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
+            PWallLog.d("Visibility changed: visible=$visible")
             if (visible) {
+                dirtyChecker.invalidate()
                 parallaxController.start()
                 startRenderThread()
             } else {
@@ -173,6 +182,7 @@ class PWallWallpaperService : WallpaperService() {
             surfaceHolder = null
             surfaceWidth = 0
             surfaceHeight = 0
+            dirtyChecker.reset()
         }
 
         private fun refreshBitmapIfNeeded() {
@@ -180,10 +190,15 @@ class PWallWallpaperService : WallpaperService() {
             if (path == null || path == loadedPath) return
             loadedPath = path
             decodeJob?.cancel()
+            val maxDimension = if (lowEnd) {
+                LowEndDevice.LOW_END_MAX_DIMENSION
+            } else {
+                LowEndDevice.NORMAL_MAX_DIMENSION
+            }
             // Decode off the main thread; the shared cache avoids re-decoding.
             decodeJob = scope.launch(Dispatchers.IO) {
                 val bitmap = ImageLoader.cached(path)
-                    ?: ImageLoader.decodeSampled(path)?.also {
+                    ?: ImageLoader.decodeSampled(path, maxDimension)?.also {
                         BitmapCache.put(BitmapCache.keyFor(path), it)
                     }
                 selectedBitmap = bitmap
@@ -192,6 +207,21 @@ class PWallWallpaperService : WallpaperService() {
                     palette = DominantColorExtractor.extract(bitmap)
                 }
                 renderOnce()
+            }
+        }
+
+        /** Recomputes the low-end performance profile from hardware + preference. */
+        private fun updateLowEnd() {
+            val am = getSystemService(android.app.ActivityManager::class.java)
+            val newValue = LowEndDevice.decide(
+                memoryClassMb = am.memoryClass,
+                isLowRamDevice = am.isLowRamDevice,
+                preference = settings.lowEnd
+            )
+            if (newValue != lowEnd) {
+                lowEnd = newValue
+                PWallLog.i("Low-end mode ${if (newValue) "enabled" else "disabled"}")
+                dirtyChecker.invalidate()
             }
         }
 
@@ -221,8 +251,18 @@ class PWallWallpaperService : WallpaperService() {
 
         private fun renderLoop() {
             while (!Thread.currentThread().isInterrupted) {
-                renderOnce()
-                val wait = nextFrameDelay()
+                val ok = runCatching { renderOnce() }.isSuccess
+                if (ok) {
+                    consecutiveRenderFailures = 0
+                } else {
+                    consecutiveRenderFailures++
+                    PWallLog.e("Render frame failed (${consecutiveRenderFailures})")
+                }
+                val wait = if (consecutiveRenderFailures >= 5) {
+                    RENDER_FAILURE_BACKOFF_MS
+                } else {
+                    nextFrameDelay()
+                }
                 try {
                     Thread.sleep(wait)
                 } catch (e: InterruptedException) {
@@ -232,76 +272,85 @@ class PWallWallpaperService : WallpaperService() {
         }
 
         /**
-         * Battery-aware frame pacing:
+         * Battery-aware frame pacing (pure logic in [FramePacer]):
          * - parallax off: redraw once per second, aligned to whole seconds
          * - parallax on + moving: ~30 fps for smooth premium motion
          * - parallax on + settling: ~5 fps so pickup is responsive
          * - parallax on + idle: back to 1 fps (clock-only redraw)
          * - premium animations: ~30 fps during a text cross-fade, ~8 fps while
          *   breathing or the cinematic zoom is sweeping
+         * - low-end mode: always 1 fps (animations are disabled anyway)
          */
         private fun nextFrameDelay(): Long {
-            val now = SystemClock.elapsedRealtime()
-            if (parallaxController.isActive()) {
-                if (parallaxController.isMoving()) {
-                    return alignMillis(now, PARALLAX_FRAME_MS)
-                }
-                if (parallaxController.idleMilliseconds() < IDLE_SETTLE_MS) {
-                    return alignMillis(now, SETTLING_FRAME_MS)
-                }
-                return alignMillis(now, 1000L)
-            }
-            val s = settings
+            val nowElapsed = SystemClock.elapsedRealtime()
             val nowMs = System.currentTimeMillis()
-            if ((s.fadeTransitionsEnabled || s.smoothSecondsEnabled) &&
-                frameTicker.isTransitionActive(nowMs)
-            ) {
-                return alignMillis(now, ANIMATION_FRAME_MS)
-            }
-            if ((s.breathingEnabled && s.breathingStrength > 0f) ||
-                (s.zoomEnabled && s.zoomStrength > 0f)
-            ) {
-                return alignMillis(now, BREATHING_FRAME_MS)
-            }
-            return nextSecondWaitMillis()
-        }
-
-        private fun nextSecondWaitMillis(): Long {
-            val now = System.currentTimeMillis()
-            return (now / 1000L + 1L) * 1000L - now
-        }
-
-        private fun alignMillis(now: Long, period: Long): Long {
-            val next = (now / period + 1L) * period
-            return (next - now).coerceAtLeast(10L)
+            val s = settings
+            return FramePacer.nextDelayMillis(
+                nowElapsed = nowElapsed,
+                nowWallMs = nowMs,
+                parallaxActive = parallaxController.isActive(),
+                parallaxMoving = parallaxController.isMoving(),
+                parallaxIdleMs = parallaxController.idleMilliseconds(),
+                transitionActive = (s.fadeTransitionsEnabled || s.smoothSecondsEnabled) &&
+                    frameTicker.isTransitionActive(nowMs),
+                breathingActive = s.breathingEnabled && s.breathingStrength > 0f,
+                zoomActive = s.zoomEnabled && s.zoomStrength > 0f,
+                lowEnd = lowEnd
+            )
         }
 
         private fun renderOnce() {
             if (surfaceWidth <= 0 || surfaceHeight <= 0) return
             val holder = surfaceHolder ?: return
-            // lockCanvas returns null if another thread is drawing; a failure
-            // here is transient and must not kill the render thread.
-            val canvas = runCatching { holder.lockCanvas() }.getOrNull() ?: return
+            val now = LocalDateTime.now()
+            val nowMs = System.currentTimeMillis()
+            val current = if (lowEnd) {
+                LowEndDevice.optimizedSettings(settings, lowEnd)
+            } else {
+                settings
+            }
+
+            val transition = frameTicker.transition(now, current, nowMs)
+            val motion = parallaxController.currentMotion()
+            val breathing = if (current.breathingEnabled && current.breathingStrength > 0f) {
+                Breathing(AnimationMath.breathingPhase(nowMs), current.breathingStrength)
+            } else {
+                null
+            }
+            val cinematicZoom = if (current.zoomEnabled && current.zoomStrength > 0f) {
+                CinematicZoom.zoomAt(
+                    elapsedMs = nowMs,
+                    durationMs = (current.zoomDurationSeconds * 1000f).toLong(),
+                    strength = current.zoomStrength,
+                    direction = current.zoomDirection
+                )
+            } else {
+                1f
+            }
+
+            // Skip the frame when nothing that affects pixels changed since the
+            // last drawn frame (steady-state clock between whole seconds, or a
+            // settings event that did not alter rendering). The key is only
+            // recorded after the frame is actually posted (see markDrawn below).
+            val signature = frameSignature(
+                now, current, motion, transition, breathing, cinematicZoom
+            )
+            if (!dirtyChecker.shouldDraw(signature)) {
+                return
+            }
+
+            // Prefer a hardware canvas (API 30+), falling back to the software
+            // canvas when the surface rejects it; lockCanvas returns null if
+            // another thread is drawing, which is transient and must not kill
+            // the render thread.
+            val canvas = runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    holder.lockHardwareCanvas()
+                } else {
+                    holder.lockCanvas()
+                }
+            }.getOrNull() ?: runCatching { holder.lockCanvas() }.getOrNull() ?: return
             try {
-                val current = settings
-                val now = LocalDateTime.now()
-                val nowMs = System.currentTimeMillis()
-                val transition = frameTicker.transition(now, current, nowMs)
-                val breathing = if (current.breathingEnabled && current.breathingStrength > 0f) {
-                    Breathing(AnimationMath.breathingPhase(nowMs), current.breathingStrength)
-                } else {
-                    null
-                }
-                val cinematicZoom = if (current.zoomEnabled && current.zoomStrength > 0f) {
-                    CinematicZoom.zoomAt(
-                        elapsedMs = nowMs,
-                        durationMs = (current.zoomDurationSeconds * 1000f).toLong(),
-                        strength = current.zoomStrength,
-                        direction = current.zoomDirection
-                    )
-                } else {
-                    1f
-                }
                 renderEngine.render(
                     canvas,
                     RenderFrame(
@@ -312,16 +361,42 @@ class PWallWallpaperService : WallpaperService() {
                         width = canvas.width,
                         height = canvas.height,
                         palette = palette,
+                        motion = motion,
                         timeTransition = transition,
                         breathing = breathing,
-                        cinematicZoom = cinematicZoom
+                        cinematicZoom = cinematicZoom,
+                        paintCache = renderEngine.paintCache
                     )
                 )
             } catch (_: Exception) {
                 // Best-effort frame: ignore transient draw errors.
             } finally {
                 runCatching { holder.unlockCanvasAndPost(canvas) }
+                dirtyChecker.markDrawn(signature)
             }
+        }
+
+        /**
+         * Compact signature of everything that affects the rendered pixels.
+         * A settings change, a new time/date string, a motion change or an
+         * active animation all alter it, so identical signatures imply the
+         * previous frame is still current and can be skipped.
+         */
+        private fun frameSignature(
+            now: LocalDateTime,
+            current: WallpaperSettings,
+            motion: Any?,
+            transition: TimeTransition?,
+            breathing: Breathing?,
+            cinematicZoom: Float
+        ): String = buildString {
+            append(ClockTextFormatter.formatTime(now, current.timeFormat, current.showSeconds))
+            append('|').append(ClockTextFormatter.formatDate(now, current.dateFormat))
+            append('|').append(current)
+            append('|').append(motion)
+            append('|').append(transition?.progress?.toString() ?: "null")
+            append('|').append(breathing?.phase?.toString() ?: "null")
+            append('|').append(cinematicZoom.toString())
         }
     }
 

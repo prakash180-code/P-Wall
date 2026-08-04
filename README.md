@@ -45,7 +45,8 @@
 - Apply as live wallpaper via the Android Live Wallpaper picker
 - Dark / Light Material 3 theme (follows the system)
 - All settings persisted with DataStore Preferences (restored automatically)
-- R8-optimized release build (~2 MB) with resource shrinking
+- R8-optimized release build (~3 MB) with resource shrinking
+- Production performance & memory optimization (see below)
 
 ## Project Structure
 
@@ -63,6 +64,11 @@ app/src/main/java/com/prakash/pwall/
 ├── service/
 │   ├── PWallWallpaperService.kt  # Live Wallpaper Service (adaptive render loop)
 │   ├── WallpaperRenderer.kt      # Shared math + legacy drawing facade
+│   ├── performance/              # Production optimizations
+│   │   ├── FramePacer            # Pure battery-aware frame pacing
+│   │   ├── FrameDirtyChecker     # Skip frames whose pixels did not change
+│   │   ├── LowEndDevice          # Low-end profile resolution (Auto/On/Off)
+│   │   └── RenderGuard           # Circuit breaker that drops failing layers
 │   ├── render/                   # Modular render engine
 │   │   ├── WallpaperRenderEngine.kt  # Compose layers + effects per frame
 │   │   ├── LayerSystem / EffectManager / ModuleSystem
@@ -95,7 +101,7 @@ app/src/main/java/com/prakash/pwall/
 │   ├── preview/               # Preview screen + ViewModel
 │   ├── customize/             # Customization screen + Mask editor + ViewModels
 │   └── components/            # Shared Compose components (incl. ColorPicker)
-├── utils/                     # ImageLoader, BitmapCache, formatters
+├── utils/                     # ImageLoader, BitmapCache, PaintCache, PWallLog, formatters
 └── theme/                     # Material 3 theme
 ```
 
@@ -112,8 +118,10 @@ units), **effects** (post-layer processing) and **modules** (feature bundles):
   the Compose preview and the engine, so preview and live wallpaper always match.
 - `RenderFrame` exposes a single shared `backgroundMatrix` (transform + parallax
   shift) so the AI-depth foreground subject stays pixel-aligned with the image.
-- Future premium features (weather/battery overlays, particle effects, manual
-  depth editor) plug in as new modules/layers/effects without touching the core.
+- Future features plug in as new modules/layers/effects without touching the
+  core. Architecture is reserved for: weather, particle effects, music controls,
+  a battery widget, calendar overlays, and GIF/video wallpapers (source-swappable
+  image plane) — none of these are implemented yet.
 
 ## AI Depth Engine
 
@@ -167,6 +175,31 @@ touching the core stack:
   alternate sine loop) applied as a post-scale on the shared `backgroundMatrix`,
   so the AI-depth foreground stays pixel-aligned while the camera sweeps.
 
+## Production Performance
+
+Prompt 6 hardened the render path for low-end hardware and battery life:
+
+- **Paint cache** — the clock/date/glow paints and the glass panel's paints/path
+  are built once and reused (keyed by an exact configuration signature), instead
+  of being allocated every frame.
+- **Frame pacing** (`FramePacer`) — pure logic: ~30 fps only while parallax is
+  moving or a digit cross-fade runs, ~8 fps while breathing/zooming, 1 fps
+  otherwise (aligned to whole seconds).
+- **Frame dirty-checking** (`FrameDirtyChecker`) — a frame whose pixels did not
+  change since the last *posted* frame is skipped without locking the surface.
+- **Low-end mode** (`LowEndDevice`) — a "Performance" section in Customize
+  (Auto/On/Off) disables the heavy per-frame effects (blur, breathing, zoom,
+  transitions, shadows, parallax) and decodes the wallpaper at a smaller cap on
+  low-RAM / low-memory-class devices.
+- **Memory** — `BitmapCache` is sized from the app's memory class (~1/8,
+  16–48 MB) and trimmed/cleared on `onTrimMemory`; scratch bitmaps in the glass
+  layer are recycled when the wallpaper is destroyed.
+- **Resilience** — each layer draw is guarded by a circuit breaker
+  (`RenderGuard`) that drops a repeatedly-failing layer instead of crashing the
+  render thread; the render loop backs off if frames keep failing; a hardware
+  canvas is preferred with automatic software fallback; `PWallLog` centralizes
+  diagnostics (debug-only verbose output).
+
 ## Tech Stack
 
 | Concern        | Choice                                              |
@@ -207,7 +240,7 @@ gradlew.bat :app:lintDebug
 
 # Release APK
 gradlew.bat :app:assembleRelease
-# output: app/build/outputs/apk/release/app-release.apk (~2 MB, R8 + shrinkResources)
+# output: app/build/outputs/apk/release/app-release.apk (~3 MB, R8 + shrinkResources)
 ```
 
 > **Note:** the release build currently signs with the debug key as a
