@@ -3,7 +3,7 @@ package com.prakash.pwall.ui.home
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,15 +11,18 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,16 +31,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -45,14 +49,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prakash.pwall.di.LocalAppContainer
+import com.prakash.pwall.ui.components.PhoneFramePreview
 import com.prakash.pwall.ui.components.PWallIcons
-import com.prakash.pwall.ui.components.WallpaperPreview
+import com.prakash.pwall.ui.components.PressScaleCard
 import com.prakash.pwall.ui.customize.launchWallpaperPicker
 
 @Composable
 fun HomeRoute(
     onOpenPreview: () -> Unit,
+    onOpenClock: () -> Unit,
+    onOpenEffects: () -> Unit,
     onOpenCustomize: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val container = LocalAppContainer.current
@@ -96,7 +104,10 @@ fun HomeRoute(
             )
         },
         onOpenPreview = onOpenPreview,
+        onOpenClock = onOpenClock,
+        onOpenEffects = onOpenEffects,
         onOpenCustomize = onOpenCustomize,
+        onOpenSettings = onOpenSettings,
         onApplyWallpaper = { launchWallpaperPicker(context) },
         snackbarHostState = snackbarHostState,
         modifier = modifier
@@ -109,7 +120,10 @@ private fun HomeScreen(
     uiState: HomeViewModel.HomeUiState,
     onSelectImage: () -> Unit,
     onOpenPreview: () -> Unit,
+    onOpenClock: () -> Unit,
+    onOpenEffects: () -> Unit,
     onOpenCustomize: () -> Unit,
+    onOpenSettings: () -> Unit,
     onApplyWallpaper: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
@@ -142,41 +156,61 @@ private fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                CurrentImageCard(
+                PhoneFrameHero(
                     uiState = uiState,
-                    onSelectImage = onSelectImage
+                    onSelectImage = onSelectImage,
+                    onOpenPreview = onOpenPreview
                 )
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
-                HomeActionCard(
-                    title = "Preview",
-                    subtitle = "See the live wallpaper preview",
-                    icon = PWallIcons.Wallpaper,
-                    onClick = onOpenPreview
+                Button(
+                    onClick = onApplyWallpaper,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Icon(Icons.Filled.Star, contentDescription = null)
+                    Text(
+                        text = "Apply Live Wallpaper",
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
+            item {
+                ColorfulActionCard(
+                    title = "Clock",
+                    subtitle = "Layout, font & colors",
+                    icon = PWallIcons.Tune,
+                    color = Color(0xFF6750A4),
+                    onClick = onOpenClock
                 )
             }
             item {
-                HomeActionCard(
-                    title = "Customize",
-                    subtitle = "Style the clock & date",
-                    icon = PWallIcons.Tune,
+                ColorfulActionCard(
+                    title = "Effects",
+                    subtitle = "Parallax, glass & zoom",
+                    icon = PWallIcons.Wallpaper,
+                    color = Color(0xFF00696D),
+                    onClick = onOpenEffects
+                )
+            }
+            item {
+                ColorfulActionCard(
+                    title = "Background",
+                    subtitle = "Image & photo editing",
+                    icon = PWallIcons.ImagePlaceholder,
+                    color = Color(0xFF7D5260),
                     onClick = onOpenCustomize
                 )
             }
             item {
-                HomeActionCard(
-                    title = "Apply Wallpaper",
-                    subtitle = "Set as live wallpaper",
-                    icon = Icons.Filled.Star,
-                    onClick = onApplyWallpaper
-                )
-            }
-            item {
-                HomeActionCard(
-                    title = "Select Image",
-                    subtitle = "Pick from your gallery",
-                    icon = PWallIcons.ImagePlaceholder,
-                    onClick = onSelectImage
+                ColorfulActionCard(
+                    title = "Settings",
+                    subtitle = "Theme, backup & more",
+                    icon = PWallIcons.Tune,
+                    color = Color(0xFF386A20),
+                    onClick = onOpenSettings
                 )
             }
         }
@@ -184,78 +218,93 @@ private fun HomeScreen(
 }
 
 @Composable
-private fun CurrentImageCard(
+private fun PhoneFrameHero(
     uiState: HomeViewModel.HomeUiState,
-    onSelectImage: () -> Unit
+    onSelectImage: () -> Unit,
+    onOpenPreview: () -> Unit
 ) {
-    val path = uiState.settings.selectedImagePath
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Current Wallpaper",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Box(
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            PhoneFramePreview(
+                settings = uiState.settings,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center
+                    .width(200.dp)
+                    .aspectRatio(0.5f)
             ) {
-                WallpaperPreview(
-                    settings = uiState.settings,
-                    showHint = true,
-                    modifier = Modifier.fillMaxSize()
-                )
                 if (uiState.isSavingImage) {
-                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(40.dp),
+                        color = Color.White
+                    )
                 }
             }
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             Button(
                 onClick = onSelectImage,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isSavingImage
+                enabled = !uiState.isSavingImage,
+                shape = RoundedCornerShape(14.dp)
             ) {
-                Text(if (path == null) "Select Image" else "Change Image")
+                Text(if (uiState.settings.selectedImagePath == null) "Select Image" else "Change Image")
+            }
+            TextButton(onClick = onOpenPreview) {
+                Text("Open full preview")
             }
         }
     }
 }
 
 @Composable
-private fun HomeActionCard(
+private fun ColorfulActionCard(
     title: String,
     subtitle: String,
     icon: ImageVector,
+    color: Color,
     onClick: () -> Unit
 ) {
-    Card(
+    PressScaleCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        containerColor = color,
+        contentColor = Color.White
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
@@ -264,7 +313,7 @@ private fun HomeActionCard(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.White.copy(alpha = 0.85f)
             )
         }
     }

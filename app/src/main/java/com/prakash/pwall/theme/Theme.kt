@@ -8,7 +8,9 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.prakash.pwall.data.model.AppTheme
 
 private val LightColors = lightColorScheme(
     primary = PrimaryLight,
@@ -47,24 +49,52 @@ private val DarkColors = darkColorScheme(
 )
 
 /**
- * Whether dynamic color (Android 12+) is used. Deterministic app colors are
- * preferred for a wallpaper app, so this defaults to false.
+ * App theme for the P-Wall UI itself.
+ *
+ *  * [AppTheme.AUTO] - follows the system dark mode and uses Android's dynamic
+ *    wallpaper colors (Material You) on Android 12+.
+ *  * [AppTheme.LIGHT] / [AppTheme.DARK] - deterministic P-Wall palettes.
+ *  * [AppTheme.CUSTOM] - deterministic palettes with user-selected primary,
+ *    secondary and accent colors.
  */
-private val UseDynamicColor = false
-
 @Composable
 fun PWallTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    appTheme: AppTheme = AppTheme.AUTO,
+    customPrimaryColor: Long = 0xFF4F5B92.toLong(),
+    customSecondaryColor: Long = 0xFF5B5D72.toLong(),
+    customAccentColor: Long = 0xFF00897B.toLong(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        UseDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val darkTheme = when (appTheme) {
+        AppTheme.AUTO -> isSystemInDarkTheme()
+        AppTheme.LIGHT -> false
+        AppTheme.DARK -> true
+        AppTheme.CUSTOM -> isSystemInDarkTheme()
+    }
+
+    val colorScheme = when (appTheme) {
+        AppTheme.AUTO -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val context = LocalContext.current
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            } else if (darkTheme) {
+                DarkColors
+            } else {
+                LightColors
+            }
         }
 
-        darkTheme -> DarkColors
-        else -> LightColors
+        AppTheme.CUSTOM -> {
+            (if (darkTheme) DarkColors else LightColors).copy(
+                primary = Color(customPrimaryColor),
+                onPrimary = Color(0xFFFFFFFF),
+                secondary = Color(customSecondaryColor),
+                tertiary = Color(customAccentColor)
+            )
+        }
+
+        AppTheme.LIGHT -> LightColors
+        AppTheme.DARK -> DarkColors
     }
 
     MaterialTheme(

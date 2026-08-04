@@ -71,7 +71,12 @@ fun ClockOverlay(
         }
     }
 
-    val clockText = ClockTextFormatter.formatTime(tick, settings.timeFormat, settings.showSeconds)
+    val clockText = ClockTextFormatter.formatClock(
+        tick, settings.timeFormat, settings.showSeconds, settings.clockLayout
+    )
+    val clockLines = ClockTextFormatter.formatTimeLines(
+        tick, settings.timeFormat, settings.showSeconds, settings.clockLayout
+    )
     val dateText = ClockTextFormatter.formatDate(tick, settings.dateFormat)
 
     val clockColor = applyTransparency(settings.clockColorValue, settings.transparency)
@@ -183,7 +188,7 @@ fun ClockOverlay(
                     }
             ) { (clock, date) ->
                 ClockColumn(
-                    clockText = clock,
+                    timeLines = clockLines,
                     dateText = date,
                     clockColor = clockColor,
                     dateColor = dateColor,
@@ -198,10 +203,14 @@ fun ClockOverlay(
     }
 }
 
-/** Renders the two-line clock block; an extra pass adds the glass glow behind. */
+/**
+ * Renders the stacked time lines + date; an extra pass adds the glass glow
+ * behind each line. The horizontal layout is a single line; the vertical
+ * layouts stack the (2-digit, aligned) digits and optional markers.
+ */
 @Composable
 private fun ClockColumn(
-    clockText: String,
+    timeLines: List<String>,
     dateText: String,
     clockColor: Color,
     dateColor: Color,
@@ -215,14 +224,16 @@ private fun ClockColumn(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        TextLine(
-            text = clockText,
-            color = clockColor,
-            fontSize = clockFontSize,
-            fontFamily = fontFamily,
-            shadow = shadow,
-            glow = glow
-        )
+        timeLines.forEach { line ->
+            TextLine(
+                text = line,
+                color = clockColor,
+                fontSize = clockFontSize,
+                fontFamily = fontFamily,
+                shadow = shadow,
+                glow = glow
+            )
+        }
         TextLine(
             text = dateText,
             color = dateColor,

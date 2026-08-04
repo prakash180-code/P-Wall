@@ -43,6 +43,14 @@
   - Cinematic Zoom: slow Ken Burns sweep on the wallpaper (zoom-in / zoom-out /
     alternate)
 - Apply as live wallpaper via the Android Live Wallpaper picker
+- Redesigned 5-tab UI (bottom navigation): Home, Clock, Effects, Background,
+  Settings
+  - Every screen live-updates as you change values (shared
+    `AppSettingsViewModel` + DataStore)
+  - Dynamic Material 3 theme: Auto / Light / Dark, plus a custom accent picked
+    from the wallpaper's dominant color
+  - Backup/restore settings as a JSON snapshot, storage usage view, one-tap
+    reset to defaults
 - Dark / Light Material 3 theme (follows the system)
 - All settings persisted with DataStore Preferences (restored automatically)
 - R8-optimized release build (~3 MB) with resource shrinking
@@ -97,12 +105,19 @@ app/src/main/java/com/prakash/pwall/
 │       ├── MaskOps               # Pure alpha ops (expand/shrink/feather/smooth)
 │       └── MaskMath              # Bitmap <-> alpha conversions + compositing
 ├── ui/
-│   ├── home/                  # Home screen + ViewModel
-│   ├── preview/               # Preview screen + ViewModel
-│   ├── customize/             # Customization screen + Mask editor + ViewModels
-│   └── components/            # Shared Compose components (incl. ColorPicker)
+│   ├── AppSettingsViewModel.kt  # Shared settings VM (single DataStore flow)
+│   ├── home/                    # Home tab + hero preview
+│   ├── clock/                   # Clock tab (layout/format/font/color/shadow)
+│   ├── effects/                 # Effects tab (parallax/depth/glass/animations)
+│   ├── background/              # Background tab (mode/zoom/pan/position)
+│   ├── settings/                # Settings tab (theme/backup/storage/reset)
+│   ├── preview/                 # Preview screen + ViewModel
+│   ├── customize/               # Legacy Customize screen + Mask editor
+│   ├── editors/                 # Full-screen background & position editors
+│   ├── navigation/              # Bottom-nav scaffold + destinations
+│   └── components/              # Shared Compose components (SettingsUi, ColorPicker, ...)
 ├── utils/                     # ImageLoader, BitmapCache, PaintCache, PWallLog, formatters
-└── theme/                     # Material 3 theme
+└── theme/                     # Material 3 theme (dynamic colors)
 ```
 
 ## Modular Render Engine

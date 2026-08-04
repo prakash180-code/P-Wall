@@ -1,5 +1,6 @@
 package com.prakash.pwall.utils
 
+import com.prakash.pwall.data.model.ClockLayout
 import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.TimeFormat
 import org.junit.Assert.assertEquals
@@ -55,5 +56,71 @@ class ClockTextFormatterTest {
     @Test
     fun formatDate_dayDate() {
         assertEquals("Wednesday, 15 July", ClockTextFormatter.formatDate(fixed, DateFormat.DAY_DATE))
+    }
+
+    @Test
+    fun formatClock_horizontal_matchesLegacyTime() {
+        assertEquals(
+            ClockTextFormatter.formatTime(fixed, TimeFormat.HOUR_24, true),
+            ClockTextFormatter.formatClock(fixed, TimeFormat.HOUR_24, true, ClockLayout.HORIZONTAL)
+        )
+    }
+
+    @Test
+    fun formatTimeLines_verticalDigital_24hWithSeconds() {
+        assertEquals(
+            listOf("13", "05", "09"),
+            ClockTextFormatter.formatTimeLines(
+                fixed, TimeFormat.HOUR_24, true, ClockLayout.VERTICAL_DIGITAL
+            )
+        )
+    }
+
+    @Test
+    fun formatTimeLines_verticalDigital_24hWithoutSeconds() {
+        assertEquals(
+            listOf("13", "05"),
+            ClockTextFormatter.formatTimeLines(
+                fixed, TimeFormat.HOUR_24, false, ClockLayout.VERTICAL_DIGITAL
+            )
+        )
+    }
+
+    @Test
+    fun formatTimeLines_stackedDigital_includesColon() {
+        assertEquals(
+            listOf("13", ":", "05", "09"),
+            ClockTextFormatter.formatTimeLines(
+                fixed, TimeFormat.HOUR_24, true, ClockLayout.STACKED_DIGITAL
+            )
+        )
+    }
+
+    @Test
+    fun formatTimeLines_compactVertical_12hUsesAmPm() {
+        assertEquals(
+            listOf("01", "05", "PM"),
+            ClockTextFormatter.formatTimeLines(
+                fixed, TimeFormat.HOUR_12, true, ClockLayout.COMPACT_VERTICAL
+            )
+        )
+    }
+
+    @Test
+    fun formatTimeLines_compactVertical_24hUsesSeconds() {
+        assertEquals(
+            listOf("13", "05", "09"),
+            ClockTextFormatter.formatTimeLines(
+                fixed, TimeFormat.HOUR_24, true, ClockLayout.COMPACT_VERTICAL
+            )
+        )
+    }
+
+    @Test
+    fun formatClock_joinsLinesWithNewline() {
+        assertEquals(
+            "13\n05\n09",
+            ClockTextFormatter.formatClock(fixed, TimeFormat.HOUR_24, true, ClockLayout.VERTICAL_DIGITAL)
+        )
     }
 }

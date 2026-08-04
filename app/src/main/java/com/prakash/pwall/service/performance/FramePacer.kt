@@ -3,7 +3,7 @@ package com.prakash.pwall.service.performance
 /**
  * Battery-aware frame pacing. Pure, JVM-testable version of the service's
  * adaptive render loop:
- * - 3D parallax moving: ~30 fps for smooth motion
+ * - 3D parallax moving: ~60 fps for smooth motion
  * - parallax settling: ~5 fps so pickup stays responsive
  * - parallax idle: 1 fps clock-only redraw
  * - low-end mode: always 1 fps (animations are disabled anyway)
@@ -13,8 +13,8 @@ package com.prakash.pwall.service.performance
  */
 object FramePacer {
 
-    /** ~30 fps during movement. */
-    const val PARALLAX_FRAME_MS = 33L
+    /** ~60 fps during movement. */
+    const val PARALLAX_FRAME_MS = 16L
 
     /** ~5 fps while the device settles after movement. */
     const val SETTLING_FRAME_MS = 200L

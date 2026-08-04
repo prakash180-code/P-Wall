@@ -81,7 +81,9 @@ fun WallpaperPreview(
         }
     }
 
-    val clockText = ClockTextFormatter.formatTime(tick, settings.timeFormat, settings.showSeconds)
+    val clockText = ClockTextFormatter.formatClock(
+        tick, settings.timeFormat, settings.showSeconds, settings.clockLayout
+    )
     val dateText = ClockTextFormatter.formatDate(tick, settings.dateFormat)
     var prevClock by remember { mutableStateOf<String?>(null) }
     var prevDate by remember { mutableStateOf<String?>(null) }

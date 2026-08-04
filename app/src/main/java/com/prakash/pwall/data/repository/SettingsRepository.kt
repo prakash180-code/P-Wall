@@ -10,9 +10,12 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.prakash.pwall.data.model.BackgroundMode
+import com.prakash.pwall.data.model.AppTheme
 import com.prakash.pwall.data.model.ClockFont
+import com.prakash.pwall.data.model.ClockLayout
 import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.LowEndPreference
+import com.prakash.pwall.data.model.ParallaxSensitivityLevel
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.WallpaperSettings
@@ -47,6 +50,16 @@ class SettingsRepository(
         }
     }
 
+    /** Replaces the whole settings snapshot (restore/backup import). */
+    suspend fun applySettings(settings: WallpaperSettings) {
+        dataStore.edit { prefs -> settings.writeTo(prefs) }
+    }
+
+    /** Restores every preference to its factory default. */
+    suspend fun resetToDefaults() {
+        dataStore.edit { it.clear() }
+    }
+
     private fun Preferences.toSettings(): WallpaperSettings {
         return WallpaperSettings(
             selectedImagePath = imageStore.imagePath,
@@ -55,6 +68,8 @@ class SettingsRepository(
             showSeconds = booleanPreference(SHOW_SECONDS, true),
             dateFormat = DateFormat.entries.firstOrNull { it.name == stringPreference(DATE_FORMAT) }
                 ?: WallpaperSettings().dateFormat,
+            clockLayout = ClockLayout.entries.firstOrNull { it.name == stringPreference(CLOCK_LAYOUT) }
+                ?: WallpaperSettings().clockLayout,
             clockFont = ClockFont.entries.firstOrNull { it.name == stringPreference(CLOCK_FONT) }
                 ?: WallpaperSettings().clockFont,
             clockFontSizeSp = floatPreference(CLOCK_FONT_SIZE_SP, 56f),
@@ -79,9 +94,13 @@ class SettingsRepository(
             backgroundTranslateXFraction = floatPreference(BACKGROUND_TRANSLATE_X_FRACTION, 0f),
             backgroundTranslateYFraction = floatPreference(BACKGROUND_TRANSLATE_Y_FRACTION, 0f),
             parallaxEnabled = booleanPreference(PARALLAX_ENABLED, false),
-            parallaxSensitivity = floatPreference(PARALLAX_SENSITIVITY, 0.5f),
+            parallaxSensitivityLevel =
+                ParallaxSensitivityLevel.entries.firstOrNull {
+                    it.name == stringPreference(PARALLAX_SENSITIVITY_LEVEL)
+                } ?: WallpaperSettings().parallaxSensitivityLevel,
             parallaxStrength = floatPreference(PARALLAX_STRENGTH, 0.5f),
             parallaxSmoothing = floatPreference(PARALLAX_SMOOTHING, 0.5f),
+            debugParallax = booleanPreference(DEBUG_PARALLAX, false),
             depthEnabled = booleanPreference(DEPTH_ENABLED, false),
             glassEnabled = booleanPreference(GLASS_ENABLED, false),
             glassBlurRadius = floatPreference(GLASS_BLUR_RADIUS, 14f),
@@ -103,7 +122,12 @@ class SettingsRepository(
             zoomDirection = ZoomDirection.entries.firstOrNull { it.name == stringPreference(ZOOM_DIRECTION) }
                 ?: WallpaperSettings().zoomDirection,
             lowEnd = LowEndPreference.entries.firstOrNull { it.name == stringPreference(LOW_END) }
-                ?: WallpaperSettings().lowEnd
+                ?: WallpaperSettings().lowEnd,
+            appTheme = AppTheme.entries.firstOrNull { it.name == stringPreference(APP_THEME) }
+                ?: WallpaperSettings().appTheme,
+            customPrimaryColor = longPreference(CUSTOM_PRIMARY_COLOR, WallpaperSettings().customPrimaryColor),
+            customSecondaryColor = longPreference(CUSTOM_SECONDARY_COLOR, WallpaperSettings().customSecondaryColor),
+            customAccentColor = longPreference(CUSTOM_ACCENT_COLOR, WallpaperSettings().customAccentColor)
         )
     }
 
@@ -111,6 +135,7 @@ class SettingsRepository(
         prefs[stringPreferencesKey(TIME_FORMAT)] = timeFormat.name
         prefs[booleanPreferencesKey(SHOW_SECONDS)] = showSeconds
         prefs[stringPreferencesKey(DATE_FORMAT)] = dateFormat.name
+        prefs[stringPreferencesKey(CLOCK_LAYOUT)] = clockLayout.name
         prefs[stringPreferencesKey(CLOCK_FONT)] = clockFont.name
         prefs[floatPreferencesKey(CLOCK_FONT_SIZE_SP)] = clockFontSizeSp
         prefs[booleanPreferencesKey(CLOCK_BOLD)] = clockBold
@@ -132,9 +157,10 @@ class SettingsRepository(
         prefs[floatPreferencesKey(BACKGROUND_TRANSLATE_X_FRACTION)] = backgroundTranslateXFraction
         prefs[floatPreferencesKey(BACKGROUND_TRANSLATE_Y_FRACTION)] = backgroundTranslateYFraction
         prefs[booleanPreferencesKey(PARALLAX_ENABLED)] = parallaxEnabled
-        prefs[floatPreferencesKey(PARALLAX_SENSITIVITY)] = parallaxSensitivity
+        prefs[stringPreferencesKey(PARALLAX_SENSITIVITY_LEVEL)] = parallaxSensitivityLevel.name
         prefs[floatPreferencesKey(PARALLAX_STRENGTH)] = parallaxStrength
         prefs[floatPreferencesKey(PARALLAX_SMOOTHING)] = parallaxSmoothing
+        prefs[booleanPreferencesKey(DEBUG_PARALLAX)] = debugParallax
         prefs[booleanPreferencesKey(DEPTH_ENABLED)] = depthEnabled
         prefs[booleanPreferencesKey(GLASS_ENABLED)] = glassEnabled
         prefs[floatPreferencesKey(GLASS_BLUR_RADIUS)] = glassBlurRadius
@@ -155,6 +181,10 @@ class SettingsRepository(
         prefs[floatPreferencesKey(ZOOM_DURATION_SECONDS)] = zoomDurationSeconds
         prefs[stringPreferencesKey(ZOOM_DIRECTION)] = zoomDirection.name
         prefs[stringPreferencesKey(LOW_END)] = lowEnd.name
+        prefs[stringPreferencesKey(APP_THEME)] = appTheme.name
+        prefs[longPreferencesKey(CUSTOM_PRIMARY_COLOR)] = customPrimaryColor
+        prefs[longPreferencesKey(CUSTOM_SECONDARY_COLOR)] = customSecondaryColor
+        prefs[longPreferencesKey(CUSTOM_ACCENT_COLOR)] = customAccentColor
     }
 
     private fun Preferences.stringPreference(key: String): String? = this[stringPreferencesKey(key)]
@@ -174,6 +204,7 @@ class SettingsRepository(
         const val TIME_FORMAT = "time_format"
         const val SHOW_SECONDS = "show_seconds"
         const val DATE_FORMAT = "date_format"
+        const val CLOCK_LAYOUT = "clock_layout"
         const val CLOCK_FONT = "clock_font"
         const val CLOCK_FONT_SIZE_SP = "clock_font_size_sp"
         const val CLOCK_BOLD = "clock_bold"
@@ -195,9 +226,10 @@ class SettingsRepository(
         const val BACKGROUND_TRANSLATE_X_FRACTION = "background_translate_x_fraction"
         const val BACKGROUND_TRANSLATE_Y_FRACTION = "background_translate_y_fraction"
         const val PARALLAX_ENABLED = "parallax_enabled"
-        const val PARALLAX_SENSITIVITY = "parallax_sensitivity"
+        const val PARALLAX_SENSITIVITY_LEVEL = "parallax_sensitivity_level"
         const val PARALLAX_STRENGTH = "parallax_strength"
         const val PARALLAX_SMOOTHING = "parallax_smoothing"
+        const val DEBUG_PARALLAX = "debug_parallax"
         const val DEPTH_ENABLED = "depth_enabled"
         const val GLASS_ENABLED = "glass_enabled"
         const val GLASS_BLUR_RADIUS = "glass_blur_radius"
@@ -218,5 +250,9 @@ class SettingsRepository(
         const val ZOOM_DURATION_SECONDS = "zoom_duration_seconds"
         const val ZOOM_DIRECTION = "zoom_direction"
         const val LOW_END = "low_end"
+        const val APP_THEME = "app_theme"
+        const val CUSTOM_PRIMARY_COLOR = "custom_primary_color"
+        const val CUSTOM_SECONDARY_COLOR = "custom_secondary_color"
+        const val CUSTOM_ACCENT_COLOR = "custom_accent_color"
     }
 }

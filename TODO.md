@@ -1,6 +1,24 @@
 # P-Wall — Roadmap
 
-Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–6 are complete.**
+Development is done prompt-by-prompt. **Sprints 1–7 and Prompts 2–7 are complete.**
+
+## Prompt 7 — Full UI Redesign ✅ DONE
+- [x] Bottom-navigation shell: Home / Clock / Effects / Background / Settings
+- [x] Shared `AppSettingsViewModel` (single DataStore flow + typed setters) and
+      reusable `SettingsUi` components (`SettingsCard`, `SwitchRow`, `SliderRow`,
+      `SegmentedRow`, `ColorField`, `ChipGroup`, `InfoBanner`)
+- [x] Home redesign: phone-frame hero live preview + colorful 2×2 feature cards
+      + Apply Live Wallpaper action
+- [x] Clock tab: layout / format / font / color / shadow / transparency
+- [x] Effects tab: parallax (with debug amplification), AI depth, glass clock,
+      dynamic colors, micro animations, cinematic zoom, performance preset
+- [x] Background tab: mode chips + full-screen custom editor + position
+- [x] Settings tab: theme mode (Auto/Light/Dark/Custom accent), backup/restore,
+      storage, reset, about
+- [x] Dynamic Material 3 theming from the wallpaper's dominant color
+- [x] Full-screen editor shell for background + position (Cancel/Done, real preview)
+- [x] All screens live-update on every change; preview + wallpaper engine untouched
+- [x] Tests + lint green; on-device tab navigation smoke-tested with no crashes
 
 ## Prompt 6 — Production Optimization ✅ DONE
 - [x] Paint cache: `PaintCache` + `PaintKey` reuse the clock/date/glow paints and

@@ -390,7 +390,9 @@ class PWallWallpaperService : WallpaperService() {
             breathing: Breathing?,
             cinematicZoom: Float
         ): String = buildString {
-            append(ClockTextFormatter.formatTime(now, current.timeFormat, current.showSeconds))
+            append(ClockTextFormatter.formatClock(
+                now, current.timeFormat, current.showSeconds, current.clockLayout
+            ))
             append('|').append(ClockTextFormatter.formatDate(now, current.dateFormat))
             append('|').append(current)
             append('|').append(motion)
@@ -415,8 +417,8 @@ class PWallWallpaperService : WallpaperService() {
         private var inited = false
 
         fun transition(now: LocalDateTime, settings: WallpaperSettings, nowMs: Long): TimeTransition? {
-            val timeText = ClockTextFormatter.formatTime(
-                now, settings.timeFormat, settings.showSeconds
+            val timeText = ClockTextFormatter.formatClock(
+                now, settings.timeFormat, settings.showSeconds, settings.clockLayout
             )
             val dateText = ClockTextFormatter.formatDate(now, settings.dateFormat)
             if (!inited) {

@@ -2,6 +2,7 @@ package com.prakash.pwall.service.render
 
 import android.graphics.Paint
 import android.graphics.Typeface
+import com.prakash.pwall.data.model.ClockLayout
 import com.prakash.pwall.data.model.WallpaperSettings
 import com.prakash.pwall.service.WallpaperRenderer
 import com.prakash.pwall.service.color.PremiumColors
@@ -23,9 +24,16 @@ import kotlin.math.min
  * so output is byte-for-byte identical to the legacy renderer with no per-layer
  * duplication.
  *
+ * [WallpaperSettings.clockLayout] picks how the time text is stacked: the
+ * classic single-line horizontal layout, or one of the vertical layouts where
+ * hours/minutes (and optional seconds / AM/PM marker) are drawn on separate
+ * lines. All vertical lines are centered on the block's horizontal center; the
+ * horizontal layout stays left-aligned exactly as before.
+ *
  * When parallax motion is present the whole block shifts slightly in the
  * opposite direction to the background (foreground depth), re-clamped so it
- * never leaves the screen.
+ * never leaves the screen. The debug parallax mode amplifies this shift so the
+ * effect is clearly visible during testing.
  */
 object ClockBlockLayout {
 
@@ -34,13 +42,17 @@ object ClockBlockLayout {
         val x: Float,
         val y: Float,
         val timeBaseline: Float,
-        val dateBaseline: Float
+        val dateBaseline: Float,
+        val timeLineBaselines: List<Float> = listOf(timeBaseline),
+        /** When set, time lines are horizontally centered on this X. */
+        val timeCenteredX: Float? = null
     )
 
     /** Fully resolved clock block: formatted texts, paints, and positions. */
     data class Block(
         val timeText: String,
         val dateText: String,
+        val timeLines: List<String>,
         val timePaint: Paint,
         val datePaint: Paint,
         val glowTime: Paint?,
@@ -68,9 +80,10 @@ object ClockBlockLayout {
         palette: com.prakash.pwall.service.color.ColorPalette? = null,
         paintCache: PaintCache? = null
     ): Block {
-        val timeText = ClockTextFormatter.formatTime(
-            now, settings.timeFormat, settings.showSeconds
+        val timeLines = ClockTextFormatter.formatTimeLines(
+            now, settings.timeFormat, settings.showSeconds, settings.clockLayout
         )
+        val timeText = timeLines.joinToString("\n")
         val dateText = ClockTextFormatter.formatDate(now, settings.dateFormat)
 
         val clockColor = PremiumColors.clockColor(settings, palette)
@@ -82,7 +95,7 @@ object ClockBlockLayout {
         val (layout, blockWidth, blockHeight) = compute(
             canvasWidth = canvasWidth,
             canvasHeight = canvasHeight,
-            timeText = timeText,
+            timeLines = timeLines,
             dateText = dateText,
             timePaint = timePaint,
             datePaint = datePaint,
@@ -92,6 +105,7 @@ object ClockBlockLayout {
         return Block(
             timeText = timeText,
             dateText = dateText,
+            timeLines = timeLines,
             timePaint = timePaint,
             datePaint = datePaint,
             glowTime = glowTime,
@@ -202,23 +216,26 @@ object ClockBlockLayout {
     private fun compute(
         canvasWidth: Float,
         canvasHeight: Float,
-        timeText: String,
+        timeLines: List<String>,
         dateText: String,
         timePaint: Paint,
         datePaint: Paint,
         settings: WallpaperSettings,
         motion: MotionFrame?
     ): Triple<Layout, Float, Float> {
-        val timeWidth = timePaint.measureText(timeText)
+        val timeWidths = timeLines.map { timePaint.measureText(it) }
         val dateWidth = datePaint.measureText(dateText)
-        val blockWidth = max(timeWidth, dateWidth)
+        val blockWidth = max(timeWidths.maxOrNull() ?: 0f, dateWidth)
 
         val timeMetrics = timePaint.fontMetrics
         val timeHeight = timeMetrics.descent - timeMetrics.ascent
-        val gap = timeHeight * 0.18f
+        val lineGap = timeHeight * 0.18f
         val dateMetrics = datePaint.fontMetrics
         val dateHeight = dateMetrics.descent - dateMetrics.ascent
-        val blockHeight = timeHeight + gap + dateHeight
+
+        val lineCount = timeLines.size
+        val blockHeight =
+            lineCount * timeHeight + (lineCount - 1) * lineGap + lineGap + dateHeight
 
         val (baseX, baseY) = WallpaperRenderer.blockTopLeft(
             canvasWidth = canvasWidth,
@@ -239,13 +256,25 @@ object ClockBlockLayout {
         )
 
         val timeBaseline = y - timeMetrics.ascent
-        val dateBaseline = timeBaseline + timeHeight + gap - dateMetrics.ascent
+        val timeLineBaselines = List(lineCount) { index ->
+            timeBaseline + index * (timeHeight + lineGap)
+        }
+        val dateBaseline =
+            timeBaseline + lineCount * timeHeight + (lineCount - 1) * lineGap + lineGap -
+                dateMetrics.ascent
+        val centeredX = if (settings.clockLayout == ClockLayout.HORIZONTAL) {
+            null
+        } else {
+            x + blockWidth / 2f
+        }
         return Triple(
             Layout(
                 x = x,
                 y = y,
                 timeBaseline = timeBaseline,
-                dateBaseline = dateBaseline
+                dateBaseline = dateBaseline,
+                timeLineBaselines = timeLineBaselines,
+                timeCenteredX = centeredX
             ),
             blockWidth,
             blockHeight
@@ -254,7 +283,8 @@ object ClockBlockLayout {
 
     /**
      * Subtle foreground (clock) pixel shift derived from the current tilt,
-     * opposite to the background movement for depth. Zero when no motion.
+     * opposite to the background movement for depth. Zero when no motion. In
+     * debug parallax mode the shift is amplified for visual verification.
      */
     fun foregroundShiftPx(
         motion: MotionFrame?,
@@ -264,11 +294,18 @@ object ClockBlockLayout {
     ): Pair<Float, Float> {
         if (motion == null) return 0f to 0f
         val minDim = min(canvasWidth, canvasHeight)
+        if (settings.debugParallax) {
+            return ParallaxMath.debugForegroundShift(
+                motion.tiltX, motion.tiltY,
+                settings.parallaxSensitivityValue, settings.parallaxStrength,
+                minDim
+            )
+        }
         val bgNormX = ParallaxMath.backgroundTilt(
-            motion.tiltX, settings.parallaxSensitivity, settings.parallaxStrength
+            motion.tiltX, settings.parallaxSensitivityValue, settings.parallaxStrength
         )
         val bgNormY = ParallaxMath.backgroundTilt(
-            motion.tiltY, settings.parallaxSensitivity, settings.parallaxStrength
+            motion.tiltY, settings.parallaxSensitivityValue, settings.parallaxStrength
         )
         return ParallaxMath.foregroundTilt(bgNormX) * minDim to
             ParallaxMath.foregroundTilt(bgNormY) * minDim

@@ -12,6 +12,10 @@ import com.prakash.pwall.service.render.RenderFrame
  * via [RenderFrame.clockBlock] so the combined clock + date block renders
  * exactly where the legacy single-block renderer placed it.
  *
+ * The time may be a single line (horizontal layout) or several stacked lines
+ * (vertical layouts); every line is drawn individually at its own baseline,
+ * left-aligned for the horizontal layout or centered for the vertical ones.
+ *
  * Premium effects: the glass glow renders a soft halo pass beneath the crisp
  * text, time changes cross-fade via [RenderFrame.timeTransition], and the
  * breathing pulse gently scales the whole block via [RenderFrame.breathing].
@@ -23,7 +27,7 @@ class ClockLayer : Layer {
     @SuppressLint("UseKtx")
     override fun draw(canvas: Canvas, frame: RenderFrame) {
         val block = frame.clockBlock
-        block.timePaint.textAlign = Paint.Align.LEFT
+        val centeredX = block.layout.timeCenteredX
 
         canvas.save()
         frame.breathing?.let { breathing ->
@@ -34,20 +38,35 @@ class ClockLayer : Layer {
         val baseAlpha = frame.breathing?.alpha ?: 1f
         val glow = block.glowTime
         val transition = frame.timeTransition
-
         val newAlpha = baseAlpha * (transition?.progress ?: 1f)
-        if (transition != null && transition.oldTimeText != null) {
+        val oldLines = transition?.oldTimeText?.split("\n") ?: emptyList()
+
+        val lines = block.timeLines
+        val baselines = block.layout.timeLineBaselines
+        for (i in lines.indices) {
+            val baseline = baselines.getOrElse(i) { baselines.last() }
+            val drawX = if (centeredX != null) {
+                block.timePaint.textAlign = Paint.Align.CENTER
+                centeredX
+            } else {
+                block.timePaint.textAlign = Paint.Align.LEFT
+                block.layout.x
+            }
+            if (transition != null) {
+                oldLines.getOrNull(i)?.let { old ->
+                    ClockDraw.draw(
+                        canvas, old,
+                        drawX, baseline,
+                        block.timePaint, glow, baseAlpha * (1f - transition.progress)
+                    )
+                }
+            }
             ClockDraw.draw(
-                canvas, transition.oldTimeText,
-                block.layout.x, block.layout.timeBaseline,
-                block.timePaint, glow, baseAlpha * (1f - transition.progress)
+                canvas, lines[i],
+                drawX, baseline,
+                block.timePaint, glow, newAlpha
             )
         }
-        ClockDraw.draw(
-            canvas, block.timeText,
-            block.layout.x, block.layout.timeBaseline,
-            block.timePaint, glow, newAlpha
-        )
         canvas.restore()
     }
 }

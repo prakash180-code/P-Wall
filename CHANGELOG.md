@@ -2,6 +2,66 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [2.0.0] - Prompt 7 (Full UI Redesign)
+
+### Added
+- Bottom navigation shell with five destinations (`PWallNavHost`):
+  Home, Clock, Effects, Background, Settings — each with its own toolbar,
+  hero preview, and a consistent Material 3 card grid
+- New `AppSettingsViewModel` (shared across every screen) with
+  `settings.asStateFlow()` + typed setters for all persisted preferences
+  (deduplicated the old per-screen ViewModels)
+- Shared UI components (`ui/components/SettingsUi.kt`):
+  `SettingsCard`, `SettingsSection`, `SwitchRow`, `SliderRow`, `SegmentedRow`,
+  `ColorField` (opens the color picker), `TextButtonRow`, `ChipGroup`,
+  `InfoBanner` — used by all settings screens
+- New `ui/editors/FullScreenEditors.kt` combining the full-screen background
+  and position editors (one `FullScreenEditor` shell, real preview, Cancel/Done)
+- Dynamic Material 3 theme (`theme/Theme.kt` + `MainActivity`)
+  - `ThemeMode` AUTO / LIGHT / DARK / CUSTOM; custom accent picked from the
+    wallpaper's dominant color (reuses `DominantColorExtractor`)
+  - Dynamic color from the wallpaper when a custom theme accent is enabled
+- Home redesign
+  - Phone-frame hero preview (`PhoneFramePreview`) with a live engine-rendered
+    preview, "Change image" + "Open full preview" buttons
+  - Colorful 2×2 cards: Clock, Effects, Background, Settings (each tinted with
+    a per-card gradient, swatches show the current accent)
+  - "Apply Live Wallpaper" action on the hero
+- Clock screen: layout (presets + full-screen editor), clock format
+  (hours/seconds/24h, date formats), font family, size, bold/italic, clock +
+  date colors (with dynamic-color preview), shadow (toggle, blur, offset, color,
+  alpha), transparency slider
+- Effects screen: 3D Parallax (enable, sensitivity, strength, smoothing, debug
+  `ParallaxMath` amplification), AI Depth (enable + "Edit foreground mask"),
+  Glass Clock (opacity, corner radius, border, glow), Dynamic Colors,
+  Micro Animations, Cinematic Zoom (direction chips, speed, zoom), performance
+  preset (Auto/On/Off)
+- Background screen: background mode chips (Fit/Fill/Stretch/Center Crop/Custom)
+  + full-screen custom editor; position preset; zoom/rotation/pan sliders
+- Settings screen: theme mode (Auto/Light/Dark/Custom + custom accent),
+  backup/restore (JSON snapshot of all preferences), storage usage + "Clear
+  image" (deletes the imported wallpaper), about dialog, reset to defaults
+- Screens live-update the moment a value changes (shared DataStore-backed flow);
+  preview and wallpaper render engine untouched
+- Unit tests: `debugShiftPx` / `debugForegroundShift` coverage in
+  `ParallaxMathTest`
+
+### Changed
+- Navigation is now an activity-wide scaffold with bottom tabs instead of the
+  push/pop Home → Customize flow
+- `ui/customize/CustomizeScreen` + `CustomizeViewModel` reworked onto the shared
+  `AppSettingsViewModel` / `SettingsUi` components (survives as the Clock screen
+  tab entry point for legacy flows)
+- Deleted `ui/home/HomeViewModel` settings push (folded into
+  `AppSettingsViewModel`)
+
+### Verified
+- `assembleDebug` + `testDebugUnitTest` + `lintDebug`: 0 errors
+- Unit tests: all pass (parallax debug-math cases added)
+- On-device smoke test (physical device, API 33): every tab (Home / Clock /
+  Effects / Background / Settings), the full-screen preview, and the Apply
+  Live Wallpaper action all navigate without crashes; no FATAL in logcat
+
 ## [1.1.0] - Prompt 6 (Production Optimization)
 
 ### Added

@@ -24,10 +24,10 @@ class FramePacerTest {
     }
 
     @Test
-    fun parallaxMoving_runsAtAbout30Fps() {
-        // 990 is a multiple of 33, so the next aligned frame is exactly one period away.
+    fun parallaxMoving_runsAtAbout60Fps() {
+        // 1008 is a multiple of 16, so the next aligned frame is exactly one period away.
         val wait = FramePacer.nextDelayMillis(
-            nowElapsed = 990L,
+            nowElapsed = 1008L,
             nowWallMs = 0L,
             parallaxActive = true,
             parallaxMoving = true,

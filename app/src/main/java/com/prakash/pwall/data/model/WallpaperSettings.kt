@@ -28,6 +28,36 @@ enum class PositionPreset(val displayName: String) {
     CUSTOM("Custom")
 }
 
+/**
+ * How the time text is arranged inside the clock block. The horizontal layout
+ * keeps the classic single-line `12:45` look; the vertical layouts stack the
+ * digits (and optional seconds / AM/PM marker) into separate lines.
+ */
+enum class ClockLayout(val displayName: String) {
+    HORIZONTAL("Horizontal"),
+    VERTICAL_DIGITAL("Vertical Digital"),
+    STACKED_DIGITAL("Stacked Digital"),
+    COMPACT_VERTICAL("Compact Vertical")
+}
+
+/**
+ * Coarse sensitivity presets for the 3D parallax feature. Each level maps to a
+ * multiplier applied on top of the strength slider.
+ */
+enum class ParallaxSensitivityLevel(val displayName: String, val factor: Float) {
+    LOW("Low", 0.3f),
+    MEDIUM("Medium", 0.5f),
+    HIGH("High", 0.75f)
+}
+
+/** App color theme for the P-Wall UI itself (independent of the wallpaper). */
+enum class AppTheme(val displayName: String) {
+    AUTO("Auto"),
+    LIGHT("Light"),
+    DARK("Dark"),
+    CUSTOM("Custom")
+}
+
 /** How the wallpaper image fills the screen. */
 enum class BackgroundMode(val displayName: String) {
     FIT("Fit"),
@@ -73,6 +103,7 @@ data class WallpaperSettings(
     val timeFormat: TimeFormat = TimeFormat.HOUR_24,
     val showSeconds: Boolean = true,
     val dateFormat: DateFormat = DateFormat.DAY_MONTH_YEAR,
+    val clockLayout: ClockLayout = ClockLayout.HORIZONTAL,
     val clockFont: ClockFont = ClockFont.DEFAULT,
     val clockFontSizeSp: Float = 56f,
     val clockBold: Boolean = false,
@@ -94,9 +125,10 @@ data class WallpaperSettings(
     val backgroundTranslateXFraction: Float = 0f,
     val backgroundTranslateYFraction: Float = 0f,
     val parallaxEnabled: Boolean = false,
-    val parallaxSensitivity: Float = 0.5f,
+    val parallaxSensitivityLevel: ParallaxSensitivityLevel = ParallaxSensitivityLevel.MEDIUM,
     val parallaxStrength: Float = 0.5f,
     val parallaxSmoothing: Float = 0.5f,
+    val debugParallax: Boolean = false,
     val depthEnabled: Boolean = false,
     val glassEnabled: Boolean = false,
     val glassBlurRadius: Float = 14f,
@@ -116,8 +148,16 @@ data class WallpaperSettings(
     val zoomStrength: Float = 0.5f,
     val zoomDurationSeconds: Float = 30f,
     val zoomDirection: ZoomDirection = ZoomDirection.ALTERNATE,
-    val lowEnd: LowEndPreference = LowEndPreference.AUTO
+    val lowEnd: LowEndPreference = LowEndPreference.AUTO,
+    val appTheme: AppTheme = AppTheme.AUTO,
+    val customPrimaryColor: Long = 0xFF4F5B92.toLong(),
+    val customSecondaryColor: Long = 0xFF5B5D72.toLong(),
+    val customAccentColor: Long = 0xFF00897B.toLong()
 ) {
+    /** Effective parallax sensitivity multiplier derived from the selected level. */
+    val parallaxSensitivityValue: Float
+        get() = parallaxSensitivityLevel.factor
+
     val clockColorValue: Color
         get() = Color(clockColor)
 

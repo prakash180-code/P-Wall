@@ -21,6 +21,19 @@ object ParallaxMath {
     const val MAX_BACKGROUND_SHIFT = 0.045f
 
     /**
+     * Debug-mode amplification: multiplies the normalized shift so the effect
+     * is clearly visible during testing (~±50 px instead of a few px). The
+     * preview and the live wallpaper both honor this via [debugShiftPx].
+     */
+    const val DEBUG_BOOST = 8f
+
+    /** Debug-mode background shift cap in physical pixels. */
+    const val DEBUG_MAX_SHIFT_PX = 50f
+
+    /** Debug-mode base zoom so the boosted shift never exposes image edges. */
+    const val DEBUG_BASE_ZOOM = 1.10f
+
+    /**
      * Exponential moving average (low-pass filter). [smoothing] in 0..1; higher
      * values make the motion more fluid and laggy (premium feel), lower values
      * feel snappier. A value of 0 snaps instantly, 1 never moves.
@@ -83,5 +96,35 @@ object ParallaxMath {
         val remainingX = max(0f, maxPanX - abs(userPanX))
         val remainingY = max(0f, maxPanY - abs(userPanY))
         return clampBackground(shiftX, shiftY, remainingX, remainingY)
+    }
+
+    /**
+     * Debug-mode background shift: the normal tilt path amplified by
+     * [DEBUG_BOOST] and clamped to ±[DEBUG_MAX_SHIFT_PX]. Edges are handled by
+     * the caller via [DEBUG_BASE_ZOOM], so pan room is ignored here.
+     */
+    fun debugShiftPx(
+        tiltX: Float,
+        tiltY: Float,
+        sensitivity: Float,
+        strength: Float,
+        minScreenDim: Float
+    ): Pair<Float, Float> {
+        val shiftX = backgroundTilt(tiltX, sensitivity, strength) * minScreenDim * DEBUG_BOOST
+        val shiftY = backgroundTilt(tiltY, sensitivity, strength) * minScreenDim * DEBUG_BOOST
+        val cap = DEBUG_MAX_SHIFT_PX
+        return shiftX.coerceIn(-cap, cap) to shiftY.coerceIn(-cap, cap)
+    }
+
+    /** Debug-mode foreground (clock) shift, opposite to the background. */
+    fun debugForegroundShift(
+        tiltX: Float,
+        tiltY: Float,
+        sensitivity: Float,
+        strength: Float,
+        minScreenDim: Float
+    ): Pair<Float, Float> {
+        val (bgX, bgY) = debugShiftPx(tiltX, tiltY, sensitivity, strength, minScreenDim)
+        return -bgX * FOREGROUND_DEPTH_FACTOR to -bgY * FOREGROUND_DEPTH_FACTOR
     }
 }

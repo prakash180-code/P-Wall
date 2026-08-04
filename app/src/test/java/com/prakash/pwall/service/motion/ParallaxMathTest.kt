@@ -153,4 +153,44 @@ class ParallaxMathTest {
         assertEquals(0f, dx, eps)
         assertEquals(0f, dy, eps)
     }
+
+    @Test
+    fun debugShiftPx_amplifiesAndCaps() {
+        val (dx, dy) = ParallaxMath.debugShiftPx(
+            tiltX = 1f, tiltY = 1f, sensitivity = 1f, strength = 1f, minScreenDim = 1000f
+        )
+        // Normal path would be 45px; debug caps at the explicit 50px limit.
+        assertEquals(ParallaxMath.DEBUG_MAX_SHIFT_PX, dx, eps)
+        assertEquals(ParallaxMath.DEBUG_MAX_SHIFT_PX, dy, eps)
+    }
+
+    @Test
+    fun debugShiftPx_smallInputsStillVisible() {
+        // A mid tilt produces a clearly visible shift (much larger than the
+        // subtle ~10px normal path) so the effect can be verified by eye.
+        val (dx, _) = ParallaxMath.debugShiftPx(
+            tiltX = 0.5f, tiltY = 0f, sensitivity = 1f, strength = 1f, minScreenDim = 1000f
+        )
+        assertTrue(dx >= 22f)
+    }
+
+    @Test
+    fun debugShiftPx_ignoresStrengthZero_onlyWhenDisabled() {
+        val (dx, _) = ParallaxMath.debugShiftPx(
+            tiltX = 1f, tiltY = 0f, sensitivity = 1f, strength = 0f, minScreenDim = 1000f
+        )
+        assertEquals(0f, dx, eps)
+    }
+
+    @Test
+    fun debugForegroundShift_isOppositeAndFractionOfDebugBackground() {
+        val (bgX, bgY) = ParallaxMath.debugShiftPx(
+            tiltX = 1f, tiltY = 1f, sensitivity = 1f, strength = 1f, minScreenDim = 1000f
+        )
+        val (fgX, fgY) = ParallaxMath.debugForegroundShift(
+            tiltX = 1f, tiltY = 1f, sensitivity = 1f, strength = 1f, minScreenDim = 1000f
+        )
+        assertEquals(-bgX * ParallaxMath.FOREGROUND_DEPTH_FACTOR, fgX, eps)
+        assertEquals(-bgY * ParallaxMath.FOREGROUND_DEPTH_FACTOR, fgY, eps)
+    }
 }

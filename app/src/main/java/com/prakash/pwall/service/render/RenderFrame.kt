@@ -76,23 +76,42 @@ data class RenderFrame(
         }
         val m = motion
         if (m != null && bitmap != null) {
-            val (maxPanX, maxPanY) = WallpaperRenderer.backgroundPanBounds(
-                bitmap.width, bitmap.height, width, height, settings
-            )
-            val userPanX = settings.backgroundTranslateXFraction.coerceIn(-1f, 1f) * maxPanX
-            val userPanY = settings.backgroundTranslateYFraction.coerceIn(-1f, 1f) * maxPanY
-            val (shiftX, shiftY) = ParallaxMath.backgroundShiftPx(
-                tiltX = m.tiltX,
-                tiltY = m.tiltY,
-                sensitivity = settings.parallaxSensitivity,
-                strength = settings.parallaxStrength,
-                minScreenDim = min(width, height).toFloat(),
-                maxPanX = maxPanX,
-                maxPanY = maxPanY,
-                userPanX = userPanX,
-                userPanY = userPanY
-            )
-            base.postTranslate(shiftX, shiftY)
+            if (settings.debugParallax) {
+                // Debug mode: amplify the shift to ~±50 px for visual
+                // verification, backed by a small base zoom so edges never show.
+                base.postScale(
+                    ParallaxMath.DEBUG_BASE_ZOOM,
+                    ParallaxMath.DEBUG_BASE_ZOOM,
+                    width / 2f,
+                    height / 2f
+                )
+                val (shiftX, shiftY) = ParallaxMath.debugShiftPx(
+                    tiltX = m.tiltX,
+                    tiltY = m.tiltY,
+                    sensitivity = settings.parallaxSensitivityValue,
+                    strength = settings.parallaxStrength,
+                    minScreenDim = min(width, height).toFloat()
+                )
+                base.postTranslate(shiftX, shiftY)
+            } else {
+                val (maxPanX, maxPanY) = WallpaperRenderer.backgroundPanBounds(
+                    bitmap.width, bitmap.height, width, height, settings
+                )
+                val userPanX = settings.backgroundTranslateXFraction.coerceIn(-1f, 1f) * maxPanX
+                val userPanY = settings.backgroundTranslateYFraction.coerceIn(-1f, 1f) * maxPanY
+                val (shiftX, shiftY) = ParallaxMath.backgroundShiftPx(
+                    tiltX = m.tiltX,
+                    tiltY = m.tiltY,
+                    sensitivity = settings.parallaxSensitivityValue,
+                    strength = settings.parallaxStrength,
+                    minScreenDim = min(width, height).toFloat(),
+                    maxPanX = maxPanX,
+                    maxPanY = maxPanY,
+                    userPanX = userPanX,
+                    userPanY = userPanY
+                )
+                base.postTranslate(shiftX, shiftY)
+            }
         }
         if (cinematicZoom != 1f && width > 0 && height > 0) {
             base.postScale(cinematicZoom, cinematicZoom, width / 2f, height / 2f)

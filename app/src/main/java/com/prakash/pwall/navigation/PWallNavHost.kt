@@ -5,15 +5,21 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.prakash.pwall.ui.clock.ClockRoute
 import com.prakash.pwall.ui.customize.CustomizeRoute
+import com.prakash.pwall.ui.effects.EffectsRoute
 import com.prakash.pwall.ui.home.HomeRoute
 import com.prakash.pwall.ui.preview.PreviewRoute
+import com.prakash.pwall.ui.settings.SettingsRoute
 
 /** Navigation destinations. */
 object Destinations {
     const val HOME = "home"
     const val PREVIEW = "preview"
+    const val CLOCK = "clock"
+    const val EFFECTS = "effects"
     const val CUSTOMIZE = "customize"
+    const val SETTINGS = "settings"
 }
 
 @Composable
@@ -27,7 +33,10 @@ fun PWallNavHost(
         composable(Destinations.HOME) {
             HomeRoute(
                 onOpenPreview = { navController.navigate(Destinations.PREVIEW) },
-                onOpenCustomize = { navController.navigate(Destinations.CUSTOMIZE) }
+                onOpenClock = { navController.navigate(Destinations.CLOCK) },
+                onOpenEffects = { navController.navigate(Destinations.EFFECTS) },
+                onOpenCustomize = { navController.navigate(Destinations.CUSTOMIZE) },
+                onOpenSettings = { navController.navigate(Destinations.SETTINGS) }
             )
         }
         composable(Destinations.PREVIEW) {
@@ -36,10 +45,17 @@ fun PWallNavHost(
                 onOpenCustomize = { navController.navigate(Destinations.CUSTOMIZE) }
             )
         }
+        composable(Destinations.CLOCK) {
+            ClockRoute(onBack = { navController.popBackStack() })
+        }
+        composable(Destinations.EFFECTS) {
+            EffectsRoute(onBack = { navController.popBackStack() })
+        }
         composable(Destinations.CUSTOMIZE) {
-            CustomizeRoute(
-                onBack = { navController.popBackStack() }
-            )
+            CustomizeRoute(onBack = { navController.popBackStack() })
+        }
+        composable(Destinations.SETTINGS) {
+            SettingsRoute(onBack = { navController.popBackStack() })
         }
     }
 }

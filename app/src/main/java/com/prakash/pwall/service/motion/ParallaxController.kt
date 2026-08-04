@@ -24,29 +24,43 @@ class ParallaxController(
     private var strength = 0.5f
     private var smoothing = 0.5f
 
+    /** True while the wallpaper is visible and the sensors may run. */
+    private var visible = false
+
     @Volatile
     private var tiltX = 0f
 
     @Volatile
     private var tiltY = 0f
 
-    /** Pushes the latest persisted settings into the controller. */
+    /**
+     * Pushes the latest persisted settings into the controller. When the feature
+     * is toggled on/off while the wallpaper is already visible the sensors are
+     * started/stopped here too, so enabling parallax takes effect immediately
+     * (and a wallpaper that starts before the settings have loaded is still
+     * registered once they arrive).
+     */
     fun updateSettings(settings: WallpaperSettings) {
+        val wasEnabled = enabled
         enabled = settings.parallaxEnabled
-        sensitivity = settings.parallaxSensitivity.coerceIn(0f, 1f)
+        sensitivity = settings.parallaxSensitivityValue.coerceIn(0f, 1f)
         strength = settings.parallaxStrength.coerceIn(0f, 1f)
         smoothing = settings.parallaxSmoothing.coerceIn(0f, 1f)
+        if (enabled && !wasEnabled && visible && isSupported) provider.start()
+        if (!enabled && wasEnabled && visible) provider.stop()
         if (!enabled) resetTilt()
     }
 
     /** Starts listening to sensors. No-op unless enabled and supported. */
     fun start() {
+        visible = true
         if (!enabled || !isSupported) return
         provider.start()
     }
 
     /** Stops listening and resets the smoothed state. */
     fun stop() {
+        visible = false
         provider.stop()
         resetTilt()
     }

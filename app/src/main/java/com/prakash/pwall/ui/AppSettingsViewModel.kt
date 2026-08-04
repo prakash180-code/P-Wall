@@ -1,13 +1,16 @@
-package com.prakash.pwall.ui.customize
+package com.prakash.pwall.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.prakash.pwall.data.model.AppTheme
 import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
+import com.prakash.pwall.data.model.ClockLayout
 import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.LowEndPreference
+import com.prakash.pwall.data.model.ParallaxSensitivityLevel
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.WallpaperSettings
@@ -19,10 +22,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for the customize screen. Every setter persists the change via
- * [SettingsRepository] so the preview and the live wallpaper update instantly.
+ * Shared ViewModel for the editor screens (clock, effects, customize,
+ * settings). Exposes the persisted [WallpaperSettings] and a setter per option;
+ * every setter persists via [SettingsRepository] so the preview, the app theme
+ * and the live wallpaper all update instantly.
  */
-class CustomizeViewModel(
+class AppSettingsViewModel(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
@@ -33,11 +38,15 @@ class CustomizeViewModel(
             initialValue = WallpaperSettings()
         )
 
+    // --- Clock page ---
+
     fun setTimeFormat(format: TimeFormat) = update { it.copy(timeFormat = format) }
 
     fun setShowSeconds(show: Boolean) = update { it.copy(showSeconds = show) }
 
     fun setDateFormat(format: DateFormat) = update { it.copy(dateFormat = format) }
+
+    fun setClockLayout(layout: ClockLayout) = update { it.copy(clockLayout = layout) }
 
     fun setClockFont(font: ClockFont) = update { it.copy(clockFont = font) }
 
@@ -72,26 +81,12 @@ class CustomizeViewModel(
         )
     }
 
-    fun setBackgroundMode(mode: BackgroundMode) = update { it.copy(backgroundMode = mode) }
-
-    fun setBackgroundZoom(zoom: Float) = update { it.copy(backgroundZoom = zoom) }
-
-    fun setBackgroundRotation(degrees: Float) = update {
-        it.copy(backgroundRotationDegrees = degrees)
-    }
-
-    fun setBackgroundTranslation(xFraction: Float, yFraction: Float) = update {
-        it.copy(
-            backgroundTranslateXFraction = xFraction.coerceIn(-1f, 1f),
-            backgroundTranslateYFraction = yFraction.coerceIn(-1f, 1f)
-        )
-    }
+    // --- Effects page ---
 
     fun setParallaxEnabled(enabled: Boolean) = update { it.copy(parallaxEnabled = enabled) }
 
-    fun setParallaxSensitivity(value: Float) = update {
-        it.copy(parallaxSensitivity = value.coerceIn(0f, 1f))
-    }
+    fun setParallaxSensitivityLevel(level: ParallaxSensitivityLevel) =
+        update { it.copy(parallaxSensitivityLevel = level) }
 
     fun setParallaxStrength(value: Float) = update {
         it.copy(parallaxStrength = value.coerceIn(0f, 1f))
@@ -100,6 +95,8 @@ class CustomizeViewModel(
     fun setParallaxSmoothing(value: Float) = update {
         it.copy(parallaxSmoothing = value.coerceIn(0f, 1f))
     }
+
+    fun setDebugParallax(enabled: Boolean) = update { it.copy(debugParallax = enabled) }
 
     fun setDepthEnabled(enabled: Boolean) = update { it.copy(depthEnabled = enabled) }
 
@@ -156,6 +153,39 @@ class CustomizeViewModel(
     fun setZoomDirection(direction: ZoomDirection) = update { it.copy(zoomDirection = direction) }
 
     fun setLowEnd(preference: LowEndPreference) = update { it.copy(lowEnd = preference) }
+
+    // --- Customize page (background) ---
+
+    fun setBackgroundMode(mode: BackgroundMode) = update { it.copy(backgroundMode = mode) }
+
+    fun setBackgroundZoom(zoom: Float) = update { it.copy(backgroundZoom = zoom) }
+
+    fun setBackgroundRotation(degrees: Float) = update {
+        it.copy(backgroundRotationDegrees = degrees)
+    }
+
+    fun setBackgroundTranslation(xFraction: Float, yFraction: Float) = update {
+        it.copy(
+            backgroundTranslateXFraction = xFraction.coerceIn(-1f, 1f),
+            backgroundTranslateYFraction = yFraction.coerceIn(-1f, 1f)
+        )
+    }
+
+    // --- Settings page (app theme) ---
+
+    fun setAppTheme(theme: AppTheme) = update { it.copy(appTheme = theme) }
+
+    fun setCustomPrimaryColor(color: Color) = update {
+        it.copy(customPrimaryColor = color.toArgb().toLong())
+    }
+
+    fun setCustomSecondaryColor(color: Color) = update {
+        it.copy(customSecondaryColor = color.toArgb().toLong())
+    }
+
+    fun setCustomAccentColor(color: Color) = update {
+        it.copy(customAccentColor = color.toArgb().toLong())
+    }
 
     private fun update(transform: (WallpaperSettings) -> WallpaperSettings) {
         viewModelScope.launch { settingsRepository.updateSettings(transform) }
