@@ -5,11 +5,14 @@ import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.ClockLayout
 import com.prakash.pwall.data.model.DateFormat
+import com.prakash.pwall.data.model.DateLayout
 import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.ParallaxSensitivityLevel
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
+import com.prakash.pwall.data.model.TimeLayout
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetStyle
 import com.prakash.pwall.data.model.ZoomDirection
 
 /**
@@ -39,6 +42,13 @@ object SettingsBackup {
         bool("clock_bold", settings.clockBold)
         bool("clock_italic", settings.clockItalic)
         bool("shadow_enabled", settings.shadowEnabled)
+        bool("clock_visible", settings.clockVisible)
+        bool("date_visible", settings.dateVisible)
+        bool("date_linked_to_time", settings.dateLinkedToTime)
+        bool("date_bold", settings.dateBold)
+        bool("date_italic", settings.dateItalic)
+        bool("date_shadow_enabled", settings.dateShadowEnabled)
+        bool("date_animated", settings.dateAnimated)
         bool("parallax_enabled", settings.parallaxEnabled)
         bool("debug_parallax", settings.debugParallax)
         bool("depth_enabled", settings.depthEnabled)
@@ -55,6 +65,13 @@ object SettingsBackup {
         float("shadow_blur_radius", settings.shadowBlurRadius)
         float("shadow_offset_x", settings.shadowOffsetX)
         float("shadow_offset_y", settings.shadowOffsetY)
+        float("date_gap_multiplier", settings.dateGapMultiplier)
+        float("date_position_x_fraction", settings.datePositionXFraction)
+        float("date_position_y_fraction", settings.datePositionYFraction)
+        float("date_font_size_sp", settings.dateFontSizeSp)
+        float("date_shadow_blur_radius", settings.dateShadowBlurRadius)
+        float("date_shadow_offset_x", settings.dateShadowOffsetX)
+        float("date_shadow_offset_y", settings.dateShadowOffsetY)
         float("position_x_fraction", settings.positionXFraction)
         float("position_y_fraction", settings.positionYFraction)
         float("background_zoom", settings.backgroundZoom)
@@ -73,6 +90,7 @@ object SettingsBackup {
         long("clock_color", settings.clockColor)
         long("date_color", settings.dateColor)
         long("shadow_color", settings.shadowColor)
+        long("date_shadow_color", settings.dateShadowColor)
         long("glass_border_color", settings.glassBorderColor)
         long("glass_glow_color", settings.glassGlowColor)
         long("custom_primary_color", settings.customPrimaryColor)
@@ -82,6 +100,12 @@ object SettingsBackup {
         enum("date_format", settings.dateFormat)
         enum("clock_layout", settings.clockLayout)
         enum("clock_font", settings.clockFont)
+        enum("time_layout", settings.timeLayout)
+        enum("date_layout", settings.dateLayout)
+        enum("time_style", settings.timeStyle)
+        enum("date_style", settings.dateStyle)
+        enum("date_position", settings.datePosition)
+        enum("date_font", settings.dateFont)
         enum("position", settings.position)
         enum("background_mode", settings.backgroundMode)
         enum("parallax_sensitivity_level", settings.parallaxSensitivityLevel)
@@ -118,6 +142,18 @@ object SettingsBackup {
         fun <T : Enum<T>> enum(key: String, all: List<T>, default: T): T =
             all.firstOrNull { it.name == values[key] } ?: default
 
+        /** Time widget layout: prefer the new key, else migrate `clock_layout`. */
+        fun timeLayoutBackup(): TimeLayout {
+            val stored = values["time_layout"]?.let { name ->
+                TimeLayout.entries.firstOrNull { it.name == name }
+            }
+            if (stored != null) return stored
+            val legacy = values["clock_layout"]?.let { name ->
+                ClockLayout.entries.firstOrNull { it.name == name }
+            }
+            return if (legacy != null) TimeLayout.fromLegacy(legacy) else defaults.timeLayout
+        }
+
         return WallpaperSettings(
             timeFormat = enum("time_format", TimeFormat.entries, defaults.timeFormat),
             showSeconds = bool("show_seconds", defaults.showSeconds),
@@ -138,6 +174,27 @@ object SettingsBackup {
             position = enum("position", PositionPreset.entries, defaults.position),
             positionXFraction = float("position_x_fraction", defaults.positionXFraction),
             positionYFraction = float("position_y_fraction", defaults.positionYFraction),
+            clockVisible = bool("clock_visible", defaults.clockVisible),
+            dateVisible = bool("date_visible", defaults.dateVisible),
+            timeLayout = timeLayoutBackup(),
+            dateLayout = enum("date_layout", DateLayout.entries, defaults.dateLayout),
+            timeStyle = enum("time_style", WidgetStyle.entries, defaults.timeStyle),
+            dateStyle = enum("date_style", WidgetStyle.entries, defaults.dateStyle),
+            dateLinkedToTime = bool("date_linked_to_time", defaults.dateLinkedToTime),
+            dateGapMultiplier = float("date_gap_multiplier", defaults.dateGapMultiplier),
+            datePosition = enum("date_position", PositionPreset.entries, defaults.datePosition),
+            datePositionXFraction = float("date_position_x_fraction", defaults.datePositionXFraction),
+            datePositionYFraction = float("date_position_y_fraction", defaults.datePositionYFraction),
+            dateFont = enum("date_font", ClockFont.entries, defaults.dateFont),
+            dateFontSizeSp = float("date_font_size_sp", defaults.dateFontSizeSp),
+            dateBold = bool("date_bold", defaults.dateBold),
+            dateItalic = bool("date_italic", defaults.dateItalic),
+            dateShadowEnabled = bool("date_shadow_enabled", defaults.dateShadowEnabled),
+            dateShadowBlurRadius = float("date_shadow_blur_radius", defaults.dateShadowBlurRadius),
+            dateShadowOffsetX = float("date_shadow_offset_x", defaults.dateShadowOffsetX),
+            dateShadowOffsetY = float("date_shadow_offset_y", defaults.dateShadowOffsetY),
+            dateShadowColor = long("date_shadow_color", defaults.dateShadowColor),
+            dateAnimated = bool("date_animated", defaults.dateAnimated),
             backgroundMode = enum("background_mode", BackgroundMode.entries, defaults.backgroundMode),
             backgroundZoom = float("background_zoom", defaults.backgroundZoom),
             backgroundRotationDegrees =

@@ -51,6 +51,24 @@ data class RenderFrame(
     }
 
     /**
+     * The Clock & Date Engine result for this frame: the time and date rendered
+     * as independent widgets (or the byte-identical classic combination).
+     * Resolved lazily once per frame and shared by the clock/date/glass layers.
+     */
+    val widgetEngine: ClockWidgetLayout.Result by lazy {
+        ClockWidgetLayout.resolve(
+            canvasWidth = width.toFloat(),
+            canvasHeight = height.toFloat(),
+            settings = settings,
+            displayDensity = displayDensity,
+            now = now,
+            motion = motion,
+            palette = palette,
+            paintCache = paintCache
+        )
+    }
+
+    /**
      * The single [Matrix] that maps the source image onto the canvas, including
      * the 3D parallax shift and the cinematic zoom. Shared by the background
      * layer and the AI-depth foreground layer so the extracted subject always

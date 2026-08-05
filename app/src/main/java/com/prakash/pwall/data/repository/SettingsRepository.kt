@@ -14,11 +14,14 @@ import com.prakash.pwall.data.model.AppTheme
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.ClockLayout
 import com.prakash.pwall.data.model.DateFormat
+import com.prakash.pwall.data.model.DateLayout
 import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.ParallaxSensitivityLevel
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
+import com.prakash.pwall.data.model.TimeLayout
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetStyle
 import com.prakash.pwall.data.model.ZoomDirection
 import com.prakash.pwall.data.storage.ImageStore
 import kotlinx.coroutines.flow.Flow
@@ -87,6 +90,32 @@ class SettingsRepository(
                 ?: WallpaperSettings().position,
             positionXFraction = floatPreference(POSITION_X_FRACTION, 0.5f),
             positionYFraction = floatPreference(POSITION_Y_FRACTION, 0.88f),
+            clockVisible = booleanPreference(CLOCK_VISIBLE, true),
+            dateVisible = booleanPreference(DATE_VISIBLE, true),
+            timeLayout = timeLayoutPreference(),
+            dateLayout = DateLayout.entries.firstOrNull { it.name == stringPreference(DATE_LAYOUT) }
+                ?: WallpaperSettings().dateLayout,
+            timeStyle = WidgetStyle.entries.firstOrNull { it.name == stringPreference(TIME_STYLE) }
+                ?: WallpaperSettings().timeStyle,
+            dateStyle = WidgetStyle.entries.firstOrNull { it.name == stringPreference(DATE_STYLE) }
+                ?: WallpaperSettings().dateStyle,
+            dateLinkedToTime = booleanPreference(DATE_LINKED_TO_TIME, true),
+            dateGapMultiplier = floatPreference(DATE_GAP_MULTIPLIER, 1f),
+            datePosition = PositionPreset.entries.firstOrNull { it.name == stringPreference(DATE_POSITION) }
+                ?: WallpaperSettings().datePosition,
+            datePositionXFraction = floatPreference(DATE_POSITION_X_FRACTION, 0.5f),
+            datePositionYFraction = floatPreference(DATE_POSITION_Y_FRACTION, 0.5f),
+            dateFont = ClockFont.entries.firstOrNull { it.name == stringPreference(DATE_FONT) }
+                ?: WallpaperSettings().dateFont,
+            dateFontSizeSp = floatPreference(DATE_FONT_SIZE_SP, 0f),
+            dateBold = booleanPreference(DATE_BOLD, false),
+            dateItalic = booleanPreference(DATE_ITALIC, false),
+            dateShadowEnabled = booleanPreference(DATE_SHADOW_ENABLED, true),
+            dateShadowBlurRadius = floatPreference(DATE_SHADOW_BLUR_RADIUS, 6f),
+            dateShadowOffsetX = floatPreference(DATE_SHADOW_OFFSET_X, 2f),
+            dateShadowOffsetY = floatPreference(DATE_SHADOW_OFFSET_Y, 2f),
+            dateShadowColor = longPreference(DATE_SHADOW_COLOR, WallpaperSettings().dateShadowColor),
+            dateAnimated = booleanPreference(DATE_ANIMATED, true),
             backgroundMode = BackgroundMode.entries.firstOrNull { it.name == stringPreference(BACKGROUND_MODE) }
                 ?: WallpaperSettings().backgroundMode,
             backgroundZoom = floatPreference(BACKGROUND_ZOOM, 1f),
@@ -151,6 +180,27 @@ class SettingsRepository(
         prefs[stringPreferencesKey(POSITION)] = position.name
         prefs[floatPreferencesKey(POSITION_X_FRACTION)] = positionXFraction
         prefs[floatPreferencesKey(POSITION_Y_FRACTION)] = positionYFraction
+        prefs[booleanPreferencesKey(CLOCK_VISIBLE)] = clockVisible
+        prefs[booleanPreferencesKey(DATE_VISIBLE)] = dateVisible
+        prefs[stringPreferencesKey(TIME_LAYOUT)] = timeLayout.name
+        prefs[stringPreferencesKey(DATE_LAYOUT)] = dateLayout.name
+        prefs[stringPreferencesKey(TIME_STYLE)] = timeStyle.name
+        prefs[stringPreferencesKey(DATE_STYLE)] = dateStyle.name
+        prefs[booleanPreferencesKey(DATE_LINKED_TO_TIME)] = dateLinkedToTime
+        prefs[floatPreferencesKey(DATE_GAP_MULTIPLIER)] = dateGapMultiplier
+        prefs[stringPreferencesKey(DATE_POSITION)] = datePosition.name
+        prefs[floatPreferencesKey(DATE_POSITION_X_FRACTION)] = datePositionXFraction
+        prefs[floatPreferencesKey(DATE_POSITION_Y_FRACTION)] = datePositionYFraction
+        prefs[stringPreferencesKey(DATE_FONT)] = dateFont.name
+        prefs[floatPreferencesKey(DATE_FONT_SIZE_SP)] = dateFontSizeSp
+        prefs[booleanPreferencesKey(DATE_BOLD)] = dateBold
+        prefs[booleanPreferencesKey(DATE_ITALIC)] = dateItalic
+        prefs[booleanPreferencesKey(DATE_SHADOW_ENABLED)] = dateShadowEnabled
+        prefs[floatPreferencesKey(DATE_SHADOW_BLUR_RADIUS)] = dateShadowBlurRadius
+        prefs[floatPreferencesKey(DATE_SHADOW_OFFSET_X)] = dateShadowOffsetX
+        prefs[floatPreferencesKey(DATE_SHADOW_OFFSET_Y)] = dateShadowOffsetY
+        prefs[longPreferencesKey(DATE_SHADOW_COLOR)] = dateShadowColor
+        prefs[booleanPreferencesKey(DATE_ANIMATED)] = dateAnimated
         prefs[stringPreferencesKey(BACKGROUND_MODE)] = backgroundMode.name
         prefs[floatPreferencesKey(BACKGROUND_ZOOM)] = backgroundZoom
         prefs[floatPreferencesKey(BACKGROUND_ROTATION_DEGREES)] = backgroundRotationDegrees
@@ -200,6 +250,21 @@ class SettingsRepository(
     private fun Preferences.longPreference(key: String, default: Long): Long =
         this[longPreferencesKey(key)] ?: default
 
+    /**
+     * Time widget layout. New `time_layout` values win; when absent the legacy
+     * `clock_layout` is migrated so existing wallpapers keep their arrangement.
+     */
+    private fun Preferences.timeLayoutPreference(): TimeLayout {
+        val stored = stringPreference(TIME_LAYOUT)?.let { name ->
+            TimeLayout.entries.firstOrNull { it.name == name }
+        }
+        if (stored != null) return stored
+        val legacy = stringPreference(CLOCK_LAYOUT)?.let { name ->
+            ClockLayout.entries.firstOrNull { it.name == name }
+        }
+        return if (legacy != null) TimeLayout.fromLegacy(legacy) else TimeLayout.HORIZONTAL
+    }
+
     private companion object {
         const val TIME_FORMAT = "time_format"
         const val SHOW_SECONDS = "show_seconds"
@@ -220,6 +285,27 @@ class SettingsRepository(
         const val POSITION = "position"
         const val POSITION_X_FRACTION = "position_x_fraction"
         const val POSITION_Y_FRACTION = "position_y_fraction"
+        const val CLOCK_VISIBLE = "clock_visible"
+        const val DATE_VISIBLE = "date_visible"
+        const val TIME_LAYOUT = "time_layout"
+        const val DATE_LAYOUT = "date_layout"
+        const val TIME_STYLE = "time_style"
+        const val DATE_STYLE = "date_style"
+        const val DATE_LINKED_TO_TIME = "date_linked_to_time"
+        const val DATE_GAP_MULTIPLIER = "date_gap_multiplier"
+        const val DATE_POSITION = "date_position"
+        const val DATE_POSITION_X_FRACTION = "date_position_x_fraction"
+        const val DATE_POSITION_Y_FRACTION = "date_position_y_fraction"
+        const val DATE_FONT = "date_font"
+        const val DATE_FONT_SIZE_SP = "date_font_size_sp"
+        const val DATE_BOLD = "date_bold"
+        const val DATE_ITALIC = "date_italic"
+        const val DATE_SHADOW_ENABLED = "date_shadow_enabled"
+        const val DATE_SHADOW_BLUR_RADIUS = "date_shadow_blur_radius"
+        const val DATE_SHADOW_OFFSET_X = "date_shadow_offset_x"
+        const val DATE_SHADOW_OFFSET_Y = "date_shadow_offset_y"
+        const val DATE_SHADOW_COLOR = "date_shadow_color"
+        const val DATE_ANIMATED = "date_animated"
         const val BACKGROUND_MODE = "background_mode"
         const val BACKGROUND_ZOOM = "background_zoom"
         const val BACKGROUND_ROTATION_DEGREES = "background_rotation_degrees"

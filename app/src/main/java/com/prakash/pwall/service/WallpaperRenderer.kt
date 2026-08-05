@@ -259,10 +259,33 @@ object WallpaperRenderer {
         blockWidth: Float,
         blockHeight: Float,
         settings: WallpaperSettings
+    ): Pair<Float, Float> = blockTopLeft(
+        canvasWidth = canvasWidth,
+        canvasHeight = canvasHeight,
+        blockWidth = blockWidth,
+        blockHeight = blockHeight,
+        position = settings.position,
+        xFraction = settings.positionXFraction,
+        yFraction = settings.positionYFraction
+    )
+
+    /**
+     * Block top-left for an arbitrary preset + fraction pair. Used by the Clock
+     * & Date Engine for the independent date widget; the classic clock block
+     * keeps using the [settings]-based overload above.
+     */
+    internal fun blockTopLeft(
+        canvasWidth: Float,
+        canvasHeight: Float,
+        blockWidth: Float,
+        blockHeight: Float,
+        position: PositionPreset,
+        xFraction: Float,
+        yFraction: Float
     ): Pair<Float, Float> {
         val pad = EDGE_PADDING_PX
 
-        return when (settings.position) {
+        return when (position) {
             PositionPreset.CENTER ->
                 Pair(canvasWidth / 2f - blockWidth / 2f, canvasHeight / 2f - blockHeight / 2f)
             PositionPreset.TOP_LEFT -> Pair(pad, pad)
@@ -272,8 +295,8 @@ object WallpaperRenderer {
             PositionPreset.BOTTOM_CENTER ->
                 Pair(canvasWidth / 2f - blockWidth / 2f, canvasHeight - pad - blockHeight)
             PositionPreset.CUSTOM -> {
-                val cx = settings.positionXFraction.coerceIn(0f, 1f) * canvasWidth
-                val cy = settings.positionYFraction.coerceIn(0f, 1f) * canvasHeight
+                val cx = xFraction.coerceIn(0f, 1f) * canvasWidth
+                val cy = yFraction.coerceIn(0f, 1f) * canvasHeight
                 clampBlockTopLeft(
                     x = cx - blockWidth / 2f,
                     y = cy - blockHeight / 2f,

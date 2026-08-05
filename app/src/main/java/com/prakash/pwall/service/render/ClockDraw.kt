@@ -17,7 +17,8 @@ object ClockDraw {
     /**
      * Draws [text] once (or twice when a glass glow is active) at [alphaScale]
      * (0..1) of the paint's configured alpha. Alpha 0 short-circuits so disabled
-     * transition passes cost nothing.
+     * transition passes cost nothing. An optional [strokePaint] (STROKE style)
+     * draws a hollow pass beneath the fill for outline widget styles.
      */
     fun draw(
         canvas: Canvas,
@@ -26,7 +27,8 @@ object ClockDraw {
         baseline: Float,
         paint: Paint,
         glowPaint: Paint?,
-        alphaScale: Float
+        alphaScale: Float,
+        strokePaint: Paint? = null
     ) {
         if (text.isEmpty()) return
         val scale = alphaScale.coerceIn(0f, 1f)
@@ -35,6 +37,9 @@ object ClockDraw {
         if (alpha <= 0) return
         if (glowPaint != null) {
             canvas.drawText(text, x, baseline, Paint(glowPaint).apply { this.alpha = alpha })
+        }
+        if (strokePaint != null) {
+            canvas.drawText(text, x, baseline, Paint(strokePaint).apply { this.alpha = alpha })
         }
         canvas.drawText(text, x, baseline, Paint(paint).apply { this.alpha = alpha })
     }

@@ -15,7 +15,7 @@ import android.graphics.Paint
  * Paints are mutated for per-frame alpha (see [com.prakash.pwall.service.render.ClockDraw]),
  * so each rendering engine keeps its own cache to avoid cross-thread races.
  */
-class PaintCache(private val maxEntries: Int = 16) {
+class PaintCache(private val maxEntries: Int = 96) {
 
     private val cache = HashMap<String, Paint>()
     private val accessOrder = ArrayList<String>()

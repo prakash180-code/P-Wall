@@ -32,12 +32,95 @@ enum class PositionPreset(val displayName: String) {
  * How the time text is arranged inside the clock block. The horizontal layout
  * keeps the classic single-line `12:45` look; the vertical layouts stack the
  * digits (and optional seconds / AM/PM marker) into separate lines.
+ *
+ * Legacy enum kept for backward compatibility: persisted `clock_layout` values
+ * migrate into the richer [TimeLayout] (see SettingsRepository). Rendering now
+ * reads [TimeLayout] only.
  */
 enum class ClockLayout(val displayName: String) {
     HORIZONTAL("Horizontal"),
     VERTICAL_DIGITAL("Vertical Digital"),
     STACKED_DIGITAL("Stacked Digital"),
     COMPACT_VERTICAL("Compact Vertical")
+}
+
+/**
+ * Every time-widget arrangement offered by the Clock & Date Engine. The first
+ * four mirror the legacy [ClockLayout] values exactly so existing saved
+ * wallpapers keep their look; the rest are new arrangements.
+ */
+enum class TimeLayout(val displayName: String) {
+    HORIZONTAL("Horizontal"),
+    VERTICAL("Vertical"),
+    STACKED("Stacked"),
+    COMPACT("Compact"),
+    SPLIT("Split"),
+    MINIMAL("Minimal"),
+    CENTERED("Centered"),
+    LEFT_ALIGNED("Left Aligned"),
+    RIGHT_ALIGNED("Right Aligned");
+
+    /** Legacy mirror for persisted `clock_layout` compatibility. */
+    val legacyLayout: ClockLayout?
+        get() = when (this) {
+            HORIZONTAL -> ClockLayout.HORIZONTAL
+            VERTICAL -> ClockLayout.VERTICAL_DIGITAL
+            STACKED -> ClockLayout.STACKED_DIGITAL
+            COMPACT -> ClockLayout.COMPACT_VERTICAL
+            else -> null
+        }
+
+    companion object {
+        /** Migrates a persisted legacy [ClockLayout] to its [TimeLayout]. */
+        fun fromLegacy(legacy: ClockLayout): TimeLayout = when (legacy) {
+            ClockLayout.HORIZONTAL -> HORIZONTAL
+            ClockLayout.VERTICAL_DIGITAL -> VERTICAL
+            ClockLayout.STACKED_DIGITAL -> STACKED
+            ClockLayout.COMPACT_VERTICAL -> COMPACT
+        }
+    }
+}
+
+/**
+ * Date-widget arrangements. HORIZONTAL is the classic single line driven by
+ * [WallpaperSettings.dateFormat]; the rest use fixed patterns so the look is
+ * predictable regardless of the chosen date format.
+ */
+enum class DateLayout(val displayName: String) {
+    HORIZONTAL("Horizontal"),
+    VERTICAL("Vertical"),
+    MONTH_NAME("Month Name"),
+    LONG("Long"),
+    SHORT("Short"),
+    DAY_FIRST("Day First"),
+    COMPACT("Compact")
+}
+
+/**
+ * Visual style for a clock/date widget. CLASSIC reproduces the legacy engine
+ * exactly (mirrors the time typography/shadow and links below the time).
+ * The other styles apply a built-in typography + glow recipe on top of the
+ * widget's own font/size/color; the placeholder styles (FLIP_CLOCK, RETRO_LED,
+ * TERMINAL, DIGITAL_MATRIX) are reserved for future premium packs and currently
+ * render a faithful approximation so switching to them is safe.
+ */
+enum class WidgetStyle(val displayName: String, val isClassic: Boolean = false) {
+    CLASSIC("Classic", isClassic = true),
+    MINIMAL("Minimal"),
+    MODERN("Modern"),
+    GLASS("Glass"),
+    NEON("Neon"),
+    OUTLINE("Outline"),
+    THIN("Thin"),
+    BOLD("Bold"),
+    NOTHING("Nothing"),
+    PIXEL("Pixel"),
+    SAMSUNG("Samsung"),
+    IOS("iOS"),
+    FLIP_CLOCK("Flip Clock"),
+    RETRO_LED("Retro LED"),
+    TERMINAL("Terminal"),
+    DIGITAL_MATRIX("Digital Matrix")
 }
 
 /**
@@ -119,6 +202,36 @@ data class WallpaperSettings(
     val position: PositionPreset = PositionPreset.BOTTOM_CENTER,
     val positionXFraction: Float = 0.5f,
     val positionYFraction: Float = 0.88f,
+    // --- Clock & Date Engine (v1.1.2) ---
+    // Time widget keeps using the legacy position/font/shadow/format fields
+    // above; date gets its own config. Every default reproduces the classic
+    // single-block render byte-for-byte (see ClockWidgetLayout).
+    val clockVisible: Boolean = true,
+    val dateVisible: Boolean = true,
+    val timeLayout: TimeLayout = TimeLayout.HORIZONTAL,
+    val dateLayout: DateLayout = DateLayout.HORIZONTAL,
+    val timeStyle: WidgetStyle = WidgetStyle.CLASSIC,
+    val dateStyle: WidgetStyle = WidgetStyle.CLASSIC,
+    val dateLinkedToTime: Boolean = true,
+    /** Scales the classic time->date gap (1f = exact classic spacing). */
+    val dateGapMultiplier: Float = 1f,
+    val datePosition: PositionPreset = PositionPreset.CUSTOM,
+    val datePositionXFraction: Float = 0.5f,
+    val datePositionYFraction: Float = 0.5f,
+    /** Date font family; ignored in CLASSIC style (mirrors the time font). */
+    val dateFont: ClockFont = ClockFont.DEFAULT,
+    /** Date size in sp; 0 (or negative) = classic derived size (0.36 * clock). */
+    val dateFontSizeSp: Float = 0f,
+    val dateBold: Boolean = false,
+    val dateItalic: Boolean = false,
+    // Date shadow (ignored in CLASSIC style, which mirrors the time shadow).
+    val dateShadowEnabled: Boolean = true,
+    val dateShadowBlurRadius: Float = 6f,
+    val dateShadowOffsetX: Float = 2f,
+    val dateShadowOffsetY: Float = 2f,
+    val dateShadowColor: Long = Color(0x99000000).toArgb().toLong(),
+    /** Whether the date widget participates in breathing/transition effects. */
+    val dateAnimated: Boolean = true,
     val backgroundMode: BackgroundMode = BackgroundMode.FIT,
     val backgroundZoom: Float = 1f,
     val backgroundRotationDegrees: Float = 0f,
@@ -166,6 +279,9 @@ data class WallpaperSettings(
 
     val shadowColorValue: Color
         get() = Color(shadowColor)
+
+    val dateShadowColorValue: Color
+        get() = Color(dateShadowColor)
 
     val glassBorderColorValue: Color
         get() = Color(glassBorderColor)

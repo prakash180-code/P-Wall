@@ -9,13 +9,18 @@ import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.ClockLayout
 import com.prakash.pwall.data.model.DateFormat
+import com.prakash.pwall.data.model.DateLayout
 import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.ParallaxSensitivityLevel
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
+import com.prakash.pwall.data.model.TimeLayout
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetStyle
 import com.prakash.pwall.data.model.ZoomDirection
 import com.prakash.pwall.data.repository.SettingsRepository
+import com.prakash.pwall.service.render.WidgetPreset
+import com.prakash.pwall.service.render.WidgetPresets
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -79,6 +84,66 @@ class AppSettingsViewModel(
             positionXFraction = x.coerceIn(0f, 1f),
             positionYFraction = y.coerceIn(0f, 1f)
         )
+    }
+
+    // --- Clock & Date Engine ---
+
+    fun setClockVisible(visible: Boolean) = update { it.copy(clockVisible = visible) }
+
+    fun setDateVisible(visible: Boolean) = update { it.copy(dateVisible = visible) }
+
+    fun setTimeLayout(layout: TimeLayout) = update { it.copy(timeLayout = layout) }
+
+    fun setDateLayout(layout: DateLayout) = update { it.copy(dateLayout = layout) }
+
+    fun setTimeStyle(style: WidgetStyle) = update { it.copy(timeStyle = style) }
+
+    fun setDateStyle(style: WidgetStyle) = update { it.copy(dateStyle = style) }
+
+    fun setDateLinkedToTime(linked: Boolean) = update { it.copy(dateLinkedToTime = linked) }
+
+    fun setDateGapMultiplier(multiplier: Float) = update {
+        it.copy(dateGapMultiplier = multiplier.coerceIn(0.5f, 3f))
+    }
+
+    fun setDatePosition(position: PositionPreset) = update { it.copy(datePosition = position) }
+
+    fun setDatePositionFraction(x: Float, y: Float) = update {
+        it.copy(
+            datePositionXFraction = x.coerceIn(0f, 1f),
+            datePositionYFraction = y.coerceIn(0f, 1f)
+        )
+    }
+
+    fun setDateFont(font: ClockFont) = update { it.copy(dateFont = font) }
+
+    fun setDateFontSize(sizeSp: Float) = update {
+        it.copy(dateFontSizeSp = sizeSp.coerceIn(0f, 200f))
+    }
+
+    fun setDateBold(bold: Boolean) = update { it.copy(dateBold = bold) }
+
+    fun setDateItalic(italic: Boolean) = update { it.copy(dateItalic = italic) }
+
+    fun setDateShadowEnabled(enabled: Boolean) = update { it.copy(dateShadowEnabled = enabled) }
+
+    fun setDateShadowBlurRadius(radius: Float) = update {
+        it.copy(dateShadowBlurRadius = radius.coerceIn(0f, 40f))
+    }
+
+    fun setDateShadowOffset(x: Float, y: Float) = update {
+        it.copy(dateShadowOffsetX = x, dateShadowOffsetY = y)
+    }
+
+    fun setDateShadowColor(color: Color) = update {
+        it.copy(dateShadowColor = color.toArgb().toLong())
+    }
+
+    fun setDateAnimated(animated: Boolean) = update { it.copy(dateAnimated = animated) }
+
+    /** Applies a one-tap [WidgetPreset] to the whole Clock & Date Engine. */
+    fun applyWidgetPreset(preset: WidgetPreset) = update {
+        WidgetPresets.apply(it, preset)
     }
 
     // --- Effects page ---

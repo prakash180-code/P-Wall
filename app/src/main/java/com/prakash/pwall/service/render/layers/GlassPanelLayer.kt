@@ -9,9 +9,12 @@ import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.RectF
+import com.prakash.pwall.service.render.ClockWidgetLayout
 import com.prakash.pwall.service.render.Layer
 import com.prakash.pwall.service.render.Releasable
 import com.prakash.pwall.service.render.RenderFrame
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Frosted-glass panel behind the clock block (premium "Glass Clock"). Draws a
@@ -42,18 +45,18 @@ class GlassPanelLayer : Layer, Releasable {
         val settings = frame.settings
         if (!settings.glassEnabled) return
 
-        val block = frame.clockBlock
-        if (block.blockWidth <= 0f || block.blockHeight <= 0f) return
-
+        val engine = frame.widgetEngine
         val density = frame.displayDensity
         val corner = settings.glassCornerRadius * density
         val padX = 26f * density
         val padY = 22f * density
+        val union = unionRect(engine.timeBlock, engine.dateBlock) ?: return
+        if (union.width() <= 0f || union.height() <= 0f) return
         val rect = RectF(
-            block.layout.x - padX,
-            block.layout.y - padY,
-            block.layout.x + block.blockWidth + padX,
-            block.layout.y + block.blockHeight + padY
+            union.left - padX,
+            union.top - padY,
+            union.right + padX,
+            union.bottom + padY
         )
 
         canvas.save()
@@ -107,6 +110,26 @@ class GlassPanelLayer : Layer, Releasable {
         clipPath = path
         clipKey = key
         return path
+    }
+
+    /** Bounding box covering both widgets (or the single visible one). */
+    private fun unionRect(
+        time: ClockWidgetLayout.WidgetBlock?,
+        date: ClockWidgetLayout.WidgetBlock?
+    ): RectF? {
+        val list = listOfNotNull(time, date)
+        if (list.isEmpty()) return null
+        var left = Float.MAX_VALUE
+        var top = Float.MAX_VALUE
+        var right = -Float.MAX_VALUE
+        var bottom = -Float.MAX_VALUE
+        for (block in list) {
+            left = min(left, block.x)
+            top = min(top, block.y)
+            right = max(right, block.x + block.width)
+            bottom = max(bottom, block.y + block.height)
+        }
+        return RectF(left, top, right, bottom)
     }
 
     /**

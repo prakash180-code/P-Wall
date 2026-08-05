@@ -70,4 +70,18 @@ class LowEndDeviceTest {
         assertEquals(settings.clockFont, optimized.clockFont)
         assertEquals(settings.clockColor, optimized.clockColor)
     }
+
+    @Test
+    fun optimizedSettings_lowEndDisablesDateEffects() {
+        val settings = WallpaperSettings(
+            dateAnimated = true,
+            dateShadowEnabled = true,
+            dateBold = true
+        )
+        val optimized = LowEndDevice.optimizedSettings(settings, lowEnd = true)
+        assertFalse(optimized.dateAnimated)
+        assertFalse(optimized.dateShadowEnabled)
+        // Typography is not a per-frame cost, so it is preserved.
+        assertTrue(optimized.dateBold)
+    }
 }

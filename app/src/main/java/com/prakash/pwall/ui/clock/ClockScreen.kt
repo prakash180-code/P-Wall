@@ -31,12 +31,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.prakash.pwall.data.model.ClockFont
-import com.prakash.pwall.data.model.ClockLayout
 import com.prakash.pwall.data.model.DateFormat
+import com.prakash.pwall.data.model.DateLayout
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
+import com.prakash.pwall.data.model.TimeLayout
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetStyle
 import com.prakash.pwall.di.LocalAppContainer
+import com.prakash.pwall.service.render.WidgetPreset
+import com.prakash.pwall.service.render.WidgetPresets
+import com.prakash.pwall.service.render.WidgetStyleRecipe
 import com.prakash.pwall.ui.AppSettingsViewModel
 import com.prakash.pwall.ui.components.ChipRow
 import com.prakash.pwall.ui.components.ExpandableColorRow
@@ -77,12 +82,13 @@ private fun ClockScreen(
     modifier: Modifier = Modifier
 ) {
     var showPositionEditor by remember { mutableStateOf(false) }
+    var showDatePositionEditor by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Clock") },
+                title = { Text("Clock & Date") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -122,17 +128,70 @@ private fun ClockScreen(
             ) {
                 item {
                     ExpandableSectionCard(
-                        title = "Layout",
-                        summary = settings.clockLayout.displayName,
+                        title = "Presets",
+                        summary = "One-tap Clock & Date themes",
+                        defaultExpanded = true
+                    ) {
+                        Text(
+                            text = "Presets restyle the time and date together. Your colors, font and position stay unchanged.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        ChipRow(
+                            options = WidgetPreset.entries.map {
+                                it.displayName to (it == activePreset(settings))
+                            }
+                        ) { index -> viewModel.applyWidgetPreset(WidgetPreset.entries[index]) }
+                    }
+                }
+                item {
+                    SectionCard("Visibility") {
+                        SwitchRow("Show time", settings.clockVisible, viewModel::setClockVisible)
+                        SwitchRow("Show date", settings.dateVisible, viewModel::setDateVisible)
+                        SwitchRow(
+                            "Link date to time",
+                            settings.dateLinkedToTime,
+                            viewModel::setDateLinkedToTime
+                        )
+                        if (!settings.dateLinkedToTime) {
+                            Text(
+                                text = "Unlinked: the date floats at its own position (edit below).",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                item {
+                    ExpandableSectionCard(
+                        title = "Time layout",
+                        summary = settings.timeLayout.displayName,
                         defaultExpanded = true
                     ) {
                         ChipRow(
-                            options = ClockLayout.entries.map {
-                                it.displayName to (it == settings.clockLayout)
+                            options = TimeLayout.entries.map {
+                                it.displayName to (it == settings.timeLayout)
                             }
-                        ) { index -> viewModel.setClockLayout(ClockLayout.entries[index]) }
+                        ) { index -> viewModel.setTimeLayout(TimeLayout.entries[index]) }
                         Text(
-                            text = clockLayoutDescription(settings.clockLayout),
+                            text = timeLayoutDescription(settings.timeLayout),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                item {
+                    ExpandableSectionCard(
+                        title = "Time style",
+                        summary = settings.timeStyle.displayName
+                    ) {
+                        ChipRow(
+                            options = WidgetStyle.entries.map {
+                                it.displayName to (it == settings.timeStyle)
+                            }
+                        ) { index -> viewModel.setTimeStyle(WidgetStyle.entries[index]) }
+                        Text(
+                            text = WidgetStyleRecipe.description(settings.timeStyle),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -163,7 +222,7 @@ private fun ClockScreen(
                 }
                 item {
                     ExpandableSectionCard(
-                        title = "Font",
+                        title = "Time font",
                         summary = settings.clockFont.displayName
                     ) {
                         ChipRow(
@@ -183,6 +242,116 @@ private fun ClockScreen(
                     }
                 }
                 item {
+                    ExpandableSectionCard(
+                        title = "Date layout",
+                        summary = settings.dateLayout.displayName,
+                        defaultExpanded = true
+                    ) {
+                        ChipRow(
+                            options = DateLayout.entries.map {
+                                it.displayName to (it == settings.dateLayout)
+                            }
+                        ) { index -> viewModel.setDateLayout(DateLayout.entries[index]) }
+                        Text(
+                            text = dateLayoutDescription(settings.dateLayout),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        SliderWithLabel(
+                            label = "Gap below time",
+                            value = settings.dateGapMultiplier,
+                            valueRange = 0.5f..3f,
+                            displayValue = "${"%.2f".format(settings.dateGapMultiplier)}x",
+                            onValueChange = viewModel::setDateGapMultiplier
+                        )
+                    }
+                }
+                item {
+                    ExpandableSectionCard(
+                        title = "Date style",
+                        summary = settings.dateStyle.displayName
+                    ) {
+                        ChipRow(
+                            options = WidgetStyle.entries.map {
+                                it.displayName to (it == settings.dateStyle)
+                            }
+                        ) { index -> viewModel.setDateStyle(WidgetStyle.entries[index]) }
+                        Text(
+                            text = WidgetStyleRecipe.description(settings.dateStyle),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                item {
+                    ExpandableSectionCard(
+                        title = "Date font",
+                        summary = settings.dateFont.displayName
+                    ) {
+                        ChipRow(
+                            options = ClockFont.entries.map {
+                                it.displayName to (it == settings.dateFont)
+                            }
+                        ) { index -> viewModel.setDateFont(ClockFont.entries[index]) }
+                        SliderWithLabel(
+                            label = "Size (0 = auto)",
+                            value = settings.dateFontSizeSp,
+                            valueRange = 0f..48f,
+                            displayValue = if (settings.dateFontSizeSp <= 0f) {
+                                "Auto"
+                            } else {
+                                settings.dateFontSizeSp.roundToInt().toString()
+                            },
+                            onValueChange = viewModel::setDateFontSize
+                        )
+                        SwitchRow("Bold", settings.dateBold, viewModel::setDateBold)
+                        SwitchRow("Italic", settings.dateItalic, viewModel::setDateItalic)
+                        SwitchRow("Animate", settings.dateAnimated, viewModel::setDateAnimated)
+                    }
+                }
+                item {
+                    ExpandableSectionCard(
+                        title = "Date shadow",
+                        summary = if (settings.dateShadowEnabled) "On" else "Off"
+                    ) {
+                        SwitchRow(
+                            "Enable shadow",
+                            settings.dateShadowEnabled,
+                            viewModel::setDateShadowEnabled
+                        )
+                        SliderWithLabel(
+                            label = "Blur",
+                            value = settings.dateShadowBlurRadius,
+                            valueRange = 0f..30f,
+                            displayValue = settings.dateShadowBlurRadius.roundToInt().toString(),
+                            onValueChange = viewModel::setDateShadowBlurRadius
+                        )
+                        SliderWithLabel(
+                            label = "Offset X",
+                            value = settings.dateShadowOffsetX,
+                            valueRange = -20f..20f,
+                            displayValue = settings.dateShadowOffsetX.roundToInt().toString(),
+                            onValueChange = {
+                                viewModel.setDateShadowOffset(it, settings.dateShadowOffsetY)
+                            }
+                        )
+                        SliderWithLabel(
+                            label = "Offset Y",
+                            value = settings.dateShadowOffsetY,
+                            valueRange = -20f..20f,
+                            displayValue = settings.dateShadowOffsetY.roundToInt().toString(),
+                            onValueChange = {
+                                viewModel.setDateShadowOffset(settings.dateShadowOffsetX, it)
+                            }
+                        )
+                        ExpandableColorRow(
+                            title = "Shadow color",
+                            color = settings.dateShadowColorValue,
+                            onColorChange = viewModel::setDateShadowColor
+                        )
+                    }
+                }
+                item {
                     SectionCard("Colors") {
                         ExpandableColorRow(
                             title = "Clock color",
@@ -197,7 +366,7 @@ private fun ClockScreen(
                     }
                 }
                 item {
-                    SectionCard("Shadow") {
+                    SectionCard("Time shadow") {
                         SwitchRow("Enable shadow", settings.shadowEnabled, viewModel::setShadowEnabled)
                         SliderWithLabel(
                             label = "Blur",
@@ -241,7 +410,7 @@ private fun ClockScreen(
                 item {
                     SectionCard("Position") {
                         Text(
-                            text = "Pick a preset or position the clock on a full-screen preview.",
+                            text = "Position the time widget on a full-screen preview.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -250,13 +419,32 @@ private fun ClockScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Position on full screen")
+                            Text("Position time on full screen")
                         }
                         ChipRow(
                             options = PositionPreset.entries.map {
                                 it.displayName to (it == settings.position)
                             }
                         ) { index -> viewModel.setPosition(PositionPreset.entries[index]) }
+                        if (!settings.dateLinkedToTime && settings.dateVisible) {
+                            Text(
+                                text = "Date is unlinked - position it separately below.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Button(
+                                onClick = { showDatePositionEditor = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Position date on full screen")
+                            }
+                            ChipRow(
+                                options = PositionPreset.entries.map {
+                                    it.displayName to (it == settings.datePosition)
+                                }
+                            ) { index -> viewModel.setDatePosition(PositionPreset.entries[index]) }
+                        }
                     }
                 }
             }
@@ -274,11 +462,45 @@ private fun ClockScreen(
             onDismiss = { showPositionEditor = false }
         )
     }
+
+    if (showDatePositionEditor) {
+        FullScreenPositionEditor(
+            settings = settings,
+            dateTarget = true,
+            onDone = { x, y ->
+                viewModel.setDatePosition(PositionPreset.CUSTOM)
+                viewModel.setDatePositionFraction(x, y)
+                showDatePositionEditor = false
+            },
+            onDismiss = { showDatePositionEditor = false }
+        )
+    }
 }
 
-private fun clockLayoutDescription(layout: ClockLayout): String = when (layout) {
-    ClockLayout.HORIZONTAL -> "Classic single-line time (e.g. 12:45)."
-    ClockLayout.VERTICAL_DIGITAL -> "Two-digit digits stacked, seconds below."
-    ClockLayout.STACKED_DIGITAL -> "Stacked digits with a large colon separator."
-    ClockLayout.COMPACT_VERTICAL -> "Compact stack with an AM/PM marker (24-hour shows seconds instead)."
+/** The preset whose configuration currently matches [settings], if any. */
+private fun activePreset(settings: WallpaperSettings): WidgetPreset? =
+    WidgetPreset.entries.firstOrNull { preset ->
+        WidgetPresets.matches(settings, preset)
+    }
+
+private fun timeLayoutDescription(layout: TimeLayout): String = when (layout) {
+    TimeLayout.HORIZONTAL -> "Classic single-line time (e.g. 12:45)."
+    TimeLayout.VERTICAL -> "Two-digit digits stacked, seconds below."
+    TimeLayout.STACKED -> "Stacked digits with a large colon separator."
+    TimeLayout.COMPACT -> "Compact stack with an AM/PM marker (24-hour shows seconds instead)."
+    TimeLayout.SPLIT -> "Digits split side by side (flip-clock style)."
+    TimeLayout.MINIMAL -> "Small, clean single line."
+    TimeLayout.CENTERED -> "Single line, centered text."
+    TimeLayout.LEFT_ALIGNED -> "Single line, left aligned."
+    TimeLayout.RIGHT_ALIGNED -> "Single line, right aligned."
+}
+
+private fun dateLayoutDescription(layout: DateLayout): String = when (layout) {
+    DateLayout.HORIZONTAL -> "Single line using your chosen date format."
+    DateLayout.VERTICAL -> "Day, date and year stacked."
+    DateLayout.MONTH_NAME -> "Month on top, date and year below."
+    DateLayout.LONG -> "Full weekday and date on one line."
+    DateLayout.SHORT -> "Short weekday and month abbreviation."
+    DateLayout.DAY_FIRST -> "Date first, year below."
+    DateLayout.COMPACT -> "Compact day + month."
 }

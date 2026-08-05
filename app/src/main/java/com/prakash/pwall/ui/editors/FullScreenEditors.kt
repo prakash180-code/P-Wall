@@ -45,16 +45,20 @@ import com.prakash.pwall.utils.ImageLoader
 import kotlin.math.roundToInt
 
 /**
- * Full-screen drag & tap editor for the clock position. Covers the whole
+ * Full-screen drag & tap editor for a widget position. Covers the whole
  * screen exactly like the live preview so pointer fractions map 1:1 with the
  * rendered wallpaper (no small-box offset issues). Dragging only updates the
  * preview; the position is saved when the user taps "Done".
+ *
+ * [dateTarget] edits the independent date widget instead of the time widget
+ * (the date must be unlinked for the drag preview to make sense).
  */
 @Composable
 fun FullScreenPositionEditor(
     settings: WallpaperSettings,
     onDone: (Float, Float) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    dateTarget: Boolean = false
 ) {
     var dragOffset by remember { mutableStateOf<Offset?>(null) }
     var pendingFraction by remember { mutableStateOf<Offset?>(null) }
@@ -104,15 +108,36 @@ fun FullScreenPositionEditor(
                 settings = settings,
                 modifier = Modifier.fillMaxSize(),
                 showHint = false,
-                clockExtraOffset = pendingFraction?.let { fraction ->
-                    Offset(
-                        fraction.x * editorSize.width,
-                        fraction.y * editorSize.height
-                    )
-                } ?: dragOffset
+                clockExtraOffset = if (dateTarget) null else {
+                    pendingFraction?.let { fraction ->
+                        Offset(
+                            fraction.x * editorSize.width,
+                            fraction.y * editorSize.height
+                        )
+                    } ?: dragOffset
+                },
+                dateExtraOffset = if (!dateTarget) null else {
+                    pendingFraction?.let { fraction ->
+                        Offset(
+                            fraction.x * editorSize.width,
+                            fraction.y * editorSize.height
+                        )
+                    } ?: dragOffset
+                }
             )
+            val isCustom = if (dateTarget) {
+                settings.datePosition == PositionPreset.CUSTOM
+            } else {
+                settings.position == PositionPreset.CUSTOM
+            }
             Text(
-                text = if (settings.position == PositionPreset.CUSTOM) {
+                text = if (dateTarget) {
+                    if (isCustom) {
+                        "Date position - tap or drag to move"
+                    } else {
+                        "Tap or drag the date to a custom position"
+                    }
+                } else if (isCustom) {
                     "Custom position - tap or drag to move"
                 } else {
                     "Tap or drag the clock to a custom position"

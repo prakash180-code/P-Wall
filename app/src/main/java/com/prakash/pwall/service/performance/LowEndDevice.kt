@@ -52,7 +52,9 @@ object LowEndDevice {
             smoothSecondsEnabled = false,
             fadeTransitionsEnabled = false,
             parallaxEnabled = false,
-            shadowEnabled = false
+            shadowEnabled = false,
+            dateAnimated = false,
+            dateShadowEnabled = false
         )
     }
 }

@@ -73,4 +73,60 @@ class PaintKeyTest {
             PaintKey.glow(tinted, 147f, 0xFFFFFFFF.toInt(), 52f, "clock")
         )
     }
+
+    @Test
+    fun widgetKey_isDeterministic() {
+        val key1 = PaintKey.widget(
+            "time", ClockFont.DEFAULT.name, false, false, 147f,
+            0xFFFFFFFF.toInt(), 100, true, 6f, 2f, 2f, 0x99000000.toInt(),
+            0.04f, false, 0f
+        )
+        val key2 = PaintKey.widget(
+            "time", ClockFont.DEFAULT.name, false, false, 147f,
+            0xFFFFFFFF.toInt(), 100, true, 6f, 2f, 2f, 0x99000000.toInt(),
+            0.04f, false, 0f
+        )
+        assertEquals(key1, key2)
+    }
+
+    @Test
+    fun widgetKey_changesWithFamilyWeightAndSpacing() {
+        val base = listOf(
+            "time", ClockFont.DEFAULT.name, false, false, 147f,
+            0xFFFFFFFF.toInt(), 100, true, 6f, 2f, 2f, 0x99000000.toInt(),
+            0.04f, false, 0f
+        )
+        fun key(vararg parts: Any): String = PaintKey.widget(
+            parts[0] as String, parts[1] as String, parts[2] as Boolean, parts[3] as Boolean,
+            parts[4] as Float, parts[5] as Int, parts[6] as Int, parts[7] as Boolean,
+            parts[8] as Float, parts[9] as Float, parts[10] as Float, parts[11] as Int,
+            parts[12] as Float, parts[13] as Boolean, parts[14] as Float
+        )
+        assertNotEquals(key(*base.toTypedArray()), key(*(base.toMutableList().apply { this[1] = ClockFont.SERIF.name }).toTypedArray()))
+        assertNotEquals(key(*base.toTypedArray()), key(*(base.toMutableList().apply { this[2] = true }).toTypedArray()))
+        assertNotEquals(key(*base.toTypedArray()), key(*(base.toMutableList().apply { this[12] = 0.5f }).toTypedArray()))
+    }
+
+    @Test
+    fun widgetKey_timeAndDateDiffer() {
+        assertNotEquals(
+            PaintKey.widget(
+                "time", ClockFont.DEFAULT.name, false, false, 147f,
+                0xFFFFFFFF.toInt(), 100, true, 6f, 2f, 2f, 0x99000000.toInt(),
+                0f, false, 0f
+            ),
+            PaintKey.widget(
+                "date", ClockFont.DEFAULT.name, false, false, 53f,
+                0xFFFFFFFF.toInt(), 100, true, 6f, 2f, 2f, 0x99000000.toInt(),
+                0f, false, 0f
+            )
+        )
+    }
+
+    @Test
+    fun widgetGlowKey_changesWithRadiusAndColor() {
+        val base = PaintKey.widgetGlow("time", 0xFFFFFFFF.toInt(), 147f, 51f, 0xFF00FF00.toInt())
+        assertNotEquals(base, PaintKey.widgetGlow("time", 0xFFFFFFFF.toInt(), 147f, 70f, 0xFF00FF00.toInt()))
+        assertNotEquals(base, PaintKey.widgetGlow("time", 0xFFFFFFFF.toInt(), 147f, 51f, 0xFFFF0000.toInt()))
+    }
 }

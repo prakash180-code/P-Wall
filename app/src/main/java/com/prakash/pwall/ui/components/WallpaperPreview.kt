@@ -50,7 +50,8 @@ fun WallpaperPreview(
     settings: WallpaperSettings,
     modifier: Modifier = Modifier,
     showHint: Boolean = true,
-    clockExtraOffset: Offset? = null
+    clockExtraOffset: Offset? = null,
+    dateExtraOffset: Offset? = null
 ) {
     val engine = remember {
         WallpaperRenderEngine().apply {
@@ -183,7 +184,8 @@ fun WallpaperPreview(
         ClockOverlay(
             settings = settings,
             modifier = Modifier.fillMaxSize(),
-            extraOffset = clockExtraOffset
+            extraOffset = clockExtraOffset,
+            dateExtraOffset = dateExtraOffset
         )
     }
 }

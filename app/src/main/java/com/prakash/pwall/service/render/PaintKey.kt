@@ -63,4 +63,59 @@ object PaintKey {
         append('|').append(textSizePx)
         append('|').append(color)
     }
+
+    /**
+     * Key for a Clock & Date Engine widget paint. Encodes every property that
+     * changes the rendered glyphs (family, weight, spacing, stroke) on top of
+     * the shared text properties so a settings or style change always produces
+     * a fresh paint.
+     */
+    fun widget(
+        purpose: String,
+        familyName: String,
+        bold: Boolean,
+        italic: Boolean,
+        textSizePx: Float,
+        color: Int,
+        transparency: Int,
+        shadowEnabled: Boolean,
+        shadowBlurRadius: Float,
+        shadowOffsetX: Float,
+        shadowOffsetY: Float,
+        shadowColor: Int,
+        letterSpacing: Float,
+        strokeEnabled: Boolean,
+        strokeWidthPx: Float
+    ): String = buildString {
+        append("widget|").append(purpose)
+        append('|').append(familyName)
+        append('|').append(bold)
+        append('|').append(italic)
+        append('|').append(transparency)
+        append('|').append(shadowEnabled)
+        append('|').append(shadowBlurRadius)
+        append('|').append(shadowOffsetX)
+        append('|').append(shadowOffsetY)
+        append('|').append(shadowColor)
+        append('|').append(letterSpacing)
+        append('|').append(strokeEnabled)
+        append('|').append(strokeWidthPx)
+        append('|').append(textSizePx)
+        append('|').append(color)
+    }
+
+    /** Key for a style-driven glow (neon / LED) paint. */
+    fun widgetGlow(
+        purpose: String,
+        color: Int,
+        textSizePx: Float,
+        radiusPx: Float,
+        glowColor: Int
+    ): String = buildString {
+        append("widget-glow|").append(purpose)
+        append('|').append(radiusPx)
+        append('|').append(glowColor)
+        append('|').append(textSizePx)
+        append('|').append(color)
+    }
 }
