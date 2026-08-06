@@ -1,5 +1,8 @@
 package com.prakash.pwall.ui.clock
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,28 +20,39 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
+import com.prakash.pwall.data.model.ContainerBorderStyle
+import com.prakash.pwall.data.model.ContainerShape
 import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.DateLayout
+import com.prakash.pwall.data.model.GradientDirection
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.TimeLayout
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetBackgroundMode
 import com.prakash.pwall.data.model.WidgetStyle
 import com.prakash.pwall.di.LocalAppContainer
+import com.prakash.pwall.service.render.TimeContainerPreset
+import com.prakash.pwall.service.render.TimeContainerPresets
 import com.prakash.pwall.service.render.WidgetPreset
 import com.prakash.pwall.service.render.WidgetPresets
 import com.prakash.pwall.service.render.WidgetStyleRecipe
@@ -52,6 +66,7 @@ import com.prakash.pwall.ui.components.SwitchRow
 import com.prakash.pwall.ui.components.WallpaperPreview
 import com.prakash.pwall.ui.components.dateFormatExample
 import com.prakash.pwall.ui.editors.FullScreenPositionEditor
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
@@ -65,10 +80,54 @@ fun ClockRoute(
     }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    suspend fun saveWidgetImage(uri: android.net.Uri) {
+        runCatching { container.widgetImageStore.saveImage(uri) }
+            .onSuccess { path ->
+                viewModel.setWidgetImagePath(path)
+                snackbarHostState.showSnackbar("Background image set")
+            }
+            .onFailure { error ->
+                snackbarHostState.showSnackbar(error.message ?: "Could not load that image")
+            }
+    }
+
+    val openWidgetImage = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) scope.launch { saveWidgetImage(uri) }
+    }
+
+    val pickWidgetPhoto = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch { saveWidgetImage(uri) }
+        } else {
+            // Fallback to Storage Access Framework picker.
+            openWidgetImage.launch("image/*")
+        }
+    }
+
     ClockScreen(
         settings = settings,
         viewModel = viewModel,
         onBack = onBack,
+        onPickWidgetImage = {
+            pickWidgetPhoto.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        },
+        onRemoveWidgetImage = {
+            scope.launch {
+                container.widgetImageStore.deleteImage()
+                viewModel.setWidgetImagePath(null)
+                snackbarHostState.showSnackbar("Background image removed")
+            }
+        },
+        snackbarHostState = snackbarHostState,
         modifier = modifier
     )
 }
@@ -79,6 +138,9 @@ private fun ClockScreen(
     settings: WallpaperSettings,
     viewModel: AppSettingsViewModel,
     onBack: () -> Unit,
+    onPickWidgetImage: () -> Unit,
+    onRemoveWidgetImage: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
     var showPositionEditor by remember { mutableStateOf(false) }
@@ -86,6 +148,7 @@ private fun ClockScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Clock & Date") },
@@ -142,6 +205,225 @@ private fun ClockScreen(
                                 it.displayName to (it == activePreset(settings))
                             }
                         ) { index -> viewModel.applyWidgetPreset(WidgetPreset.entries[index]) }
+                    }
+                }
+                item {
+                    ExpandableSectionCard(
+                        title = "Time background",
+                        summary = settings.widgetBackgroundMode.displayName
+                    ) {
+                        Text(
+                            text = "Style the panel behind the time only. Transparent (default) keeps the widget directly on the wallpaper.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        ChipRow(
+                            options = TimeContainerPreset.entries.map {
+                                it.displayName to (it == activeTimeContainerPreset(settings))
+                            }
+                        ) { index -> viewModel.applyTimeContainerPreset(TimeContainerPreset.entries[index]) }
+                        ChipRow(
+                            options = WidgetBackgroundMode.entries.map {
+                                it.displayName to (it == settings.widgetBackgroundMode)
+                            }
+                        ) { index -> viewModel.setWidgetBackgroundMode(WidgetBackgroundMode.entries[index]) }
+
+                        when (settings.widgetBackgroundMode) {
+                            WidgetBackgroundMode.TRANSPARENT -> Text(
+                                text = "Nothing is drawn behind the time, so the wallpaper shows through.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            WidgetBackgroundMode.SOLID -> ExpandableColorRow(
+                                title = "Fill color",
+                                color = settings.widgetBackgroundColorValue,
+                                onColorChange = viewModel::setWidgetBackgroundColor
+                            )
+                            WidgetBackgroundMode.GRADIENT -> {
+                                ExpandableColorRow(
+                                    title = "Color 1",
+                                    color = settings.widgetBackgroundColorValue,
+                                    onColorChange = viewModel::setWidgetBackgroundColor
+                                )
+                                ExpandableColorRow(
+                                    title = "Color 2",
+                                    color = settings.widgetBackgroundColor2Value,
+                                    onColorChange = viewModel::setWidgetBackgroundColor2
+                                )
+                                ChipRow(
+                                    options = GradientDirection.entries.map {
+                                        it.displayName to (it == settings.widgetGradientDirection)
+                                    }
+                                ) { index -> viewModel.setWidgetGradientDirection(GradientDirection.entries[index]) }
+                            }
+                            WidgetBackgroundMode.GLASS -> {
+                                SliderWithLabel(
+                                    label = "Blur strength",
+                                    value = settings.widgetGlassBlur,
+                                    valueRange = 0f..100f,
+                                    displayValue = settings.widgetGlassBlur.roundToInt().toString(),
+                                    onValueChange = viewModel::setWidgetGlassBlur
+                                )
+                                ExpandableColorRow(
+                                    title = "Tint color",
+                                    color = settings.widgetGlassTintColorValue,
+                                    onColorChange = viewModel::setWidgetGlassTintColor
+                                )
+                            }
+                            WidgetBackgroundMode.WALLPAPER_BLUR -> {
+                                SliderWithLabel(
+                                    label = "Blur strength",
+                                    value = settings.widgetWallpaperBlurStrength,
+                                    valueRange = 0f..100f,
+                                    displayValue = settings.widgetWallpaperBlurStrength.roundToInt().toString(),
+                                    onValueChange = viewModel::setWidgetWallpaperBlur
+                                )
+                                ExpandableColorRow(
+                                    title = "Tint color",
+                                    color = settings.widgetWallpaperTintColorValue,
+                                    onColorChange = viewModel::setWidgetWallpaperTintColor
+                                )
+                            }
+                            WidgetBackgroundMode.IMAGE -> {
+                                Button(
+                                    onClick = onPickWidgetImage,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        if (settings.widgetImagePath == null) {
+                                            "Choose image"
+                                        } else {
+                                            "Replace image"
+                                        }
+                                    )
+                                }
+                                if (settings.widgetImagePath != null) {
+                                    TextButton(
+                                        onClick = onRemoveWidgetImage,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("Remove image")
+                                    }
+                                }
+                                ChipRow(
+                                    options = BackgroundMode.entries.map {
+                                        it.displayName to (it == settings.widgetImageFit)
+                                    }
+                                ) { index -> viewModel.setWidgetImageFit(BackgroundMode.entries[index]) }
+                            }
+                        }
+
+                        SliderWithLabel(
+                            label = "Opacity",
+                            value = settings.widgetBackgroundOpacity.toFloat(),
+                            valueRange = 0f..100f,
+                            displayValue = "${settings.widgetBackgroundOpacity}%",
+                            onValueChange = { viewModel.setWidgetBackgroundOpacity(it.roundToInt()) }
+                        )
+                        ChipRow(
+                            options = ContainerShape.entries.map {
+                                it.displayName to (it == settings.widgetShape)
+                            }
+                        ) { index -> viewModel.setWidgetShape(ContainerShape.entries[index]) }
+                        SliderWithLabel(
+                            label = "Corner radius",
+                            value = settings.widgetCornerRadius,
+                            valueRange = 0f..40f,
+                            displayValue = settings.widgetCornerRadius.roundToInt().toString(),
+                            onValueChange = viewModel::setWidgetCornerRadius
+                        )
+                        SliderWithLabel(
+                            label = "Padding horizontal",
+                            value = settings.widgetPaddingHorizontal,
+                            valueRange = 0f..50f,
+                            displayValue = settings.widgetPaddingHorizontal.roundToInt().toString(),
+                            onValueChange = viewModel::setWidgetPaddingHorizontal
+                        )
+                        SliderWithLabel(
+                            label = "Padding vertical",
+                            value = settings.widgetPaddingVertical,
+                            valueRange = 0f..50f,
+                            displayValue = settings.widgetPaddingVertical.roundToInt().toString(),
+                            onValueChange = viewModel::setWidgetPaddingVertical
+                        )
+
+                        SwitchRow(
+                            "Show border",
+                            settings.widgetBorderEnabled,
+                            viewModel::setWidgetBorderEnabled
+                        )
+                        if (settings.widgetBorderEnabled) {
+                            ExpandableColorRow(
+                                title = "Border color",
+                                color = settings.widgetBorderColorValue,
+                                onColorChange = viewModel::setWidgetBorderColor
+                            )
+                            SliderWithLabel(
+                                label = "Border width",
+                                value = settings.widgetBorderWidth,
+                                valueRange = 0f..20f,
+                                displayValue = settings.widgetBorderWidth.roundToInt().toString(),
+                                onValueChange = viewModel::setWidgetBorderWidth
+                            )
+                            SliderWithLabel(
+                                label = "Border opacity",
+                                value = settings.widgetBorderOpacity.toFloat(),
+                                valueRange = 0f..100f,
+                                displayValue = "${settings.widgetBorderOpacity}%",
+                                onValueChange = { viewModel.setWidgetBorderOpacity(it.roundToInt()) }
+                            )
+                            ChipRow(
+                                options = ContainerBorderStyle.entries.map {
+                                    it.displayName to (it == settings.widgetBorderStyle)
+                                }
+                            ) { index -> viewModel.setWidgetBorderStyle(ContainerBorderStyle.entries[index]) }
+                        }
+
+                        SwitchRow(
+                            "Show shadow",
+                            settings.widgetShadowEnabled,
+                            viewModel::setWidgetShadowEnabled
+                        )
+                        if (settings.widgetShadowEnabled) {
+                            ExpandableColorRow(
+                                title = "Shadow color",
+                                color = settings.widgetShadowColorValue,
+                                onColorChange = viewModel::setWidgetShadowColor
+                            )
+                            SliderWithLabel(
+                                label = "Blur",
+                                value = settings.widgetShadowBlur,
+                                valueRange = 0f..60f,
+                                displayValue = settings.widgetShadowBlur.roundToInt().toString(),
+                                onValueChange = viewModel::setWidgetShadowBlur
+                            )
+                            SliderWithLabel(
+                                label = "Spread",
+                                value = settings.widgetShadowSpread,
+                                valueRange = 0f..40f,
+                                displayValue = settings.widgetShadowSpread.roundToInt().toString(),
+                                onValueChange = viewModel::setWidgetShadowSpread
+                            )
+                            SliderWithLabel(
+                                label = "Offset X",
+                                value = settings.widgetShadowOffsetX,
+                                valueRange = -40f..40f,
+                                displayValue = settings.widgetShadowOffsetX.roundToInt().toString(),
+                                onValueChange = {
+                                    viewModel.setWidgetShadowOffset(it, settings.widgetShadowOffsetY)
+                                }
+                            )
+                            SliderWithLabel(
+                                label = "Offset Y",
+                                value = settings.widgetShadowOffsetY,
+                                valueRange = -40f..40f,
+                                displayValue = settings.widgetShadowOffsetY.roundToInt().toString(),
+                                onValueChange = {
+                                    viewModel.setWidgetShadowOffset(settings.widgetShadowOffsetX, it)
+                                }
+                            )
+                        }
                     }
                 }
                 item {
@@ -482,6 +764,12 @@ private fun activePreset(settings: WallpaperSettings): WidgetPreset? =
     WidgetPreset.entries.firstOrNull { preset ->
         WidgetPresets.matches(settings, preset)
     }
+
+/** The preset matching the container, or [TimeContainerPreset.CUSTOM] if tweaked. */
+private fun activeTimeContainerPreset(settings: WallpaperSettings): TimeContainerPreset =
+    TimeContainerPreset.entries.firstOrNull { preset ->
+        TimeContainerPresets.matches(settings, preset)
+    } ?: TimeContainerPreset.CUSTOM
 
 private fun timeLayoutDescription(layout: TimeLayout): String = when (layout) {
     TimeLayout.HORIZONTAL -> "Classic single-line time (e.g. 12:45)."

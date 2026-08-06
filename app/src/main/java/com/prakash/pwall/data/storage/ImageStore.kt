@@ -10,21 +10,26 @@ import java.io.File
 import java.io.IOException
 
 /**
- * Stores the user's selected wallpaper image in app-private storage so it can
- * be read later by the live wallpaper service without extra permissions.
- *
- * Images are copied from any [Uri] (photo picker or Storage Access Framework).
+ * Stores an image in app-private storage so it can be read later by the live
+ * wallpaper service without extra permissions. Images are copied from any
+ * [Uri] (photo picker or Storage Access Framework). The directory and file
+ * prefix are configurable so separate images (wallpaper vs. time-widget
+ * container) can coexist without deleting each other.
  */
-class ImageStore(context: Context) {
+class ImageStore(
+    context: Context,
+    private val dirName: String = DIR_NAME,
+    private val prefix: String = PREFIX
+) {
 
     private val appContext = context.applicationContext
 
     private val imageDir: File
-        get() = File(appContext.filesDir, DIR_NAME).apply { mkdirs() }
+        get() = File(appContext.filesDir, dirName).apply { mkdirs() }
 
     val imagePath: String?
         get() = imageDir.listFiles()
-            ?.firstOrNull { it.isFile && it.name.startsWith(PREFIX) }
+            ?.firstOrNull { it.isFile && it.name.startsWith(prefix) }
             ?.absolutePath
 
     /**
@@ -37,7 +42,7 @@ class ImageStore(context: Context) {
         val resolver = appContext.contentResolver
         val mimeType = resolver.getType(uri) ?: "image/*"
         val extension = extensionForMime(mimeType)
-        val file = File(imageDir, "$PREFIX$extension")
+        val file = File(imageDir, "$prefix$extension")
         try {
             resolver.openInputStream(uri)?.use { input ->
                 file.outputStream().use { output -> input.copyTo(output) }

@@ -2,7 +2,7 @@
 
 **P-Wall** is a modern Android Live Wallpaper application that turns any image from your device into a beautiful live wallpaper with a real-time digital clock, date, and day overlay — fully customizable.
 
-- **Version:** 1.0.1 (stable)
+- **Version:** 1.1.3 (stable)
 - **Package:** `com.prakash.pwall`
 - **Min SDK:** 29 (Android 10)
 - **Target SDK:** 36 (Android 16)
@@ -44,6 +44,12 @@
     breathing pulse (battery-aware frame pacing)
   - Cinematic Zoom: slow Ken Burns sweep on the wallpaper (zoom-in / zoom-out /
     alternate)
+  - Time Background: a fully customizable container behind the time widget only
+    — Transparent (default) / Solid Color / Gradient / Glass (real backdrop
+    blur) / Wallpaper Blur / Custom Image, with shapes (Rounded / Capsule /
+    Circle), border (Solid / Dashed / Dotted), shadow, opacity, padding and
+    one-tap presets (Transparent, Minimal, Glass, Frosted Glass, Dark Card,
+    Light Card, Rounded, Capsule, Elegant)
 - Apply as live wallpaper via the Android Live Wallpaper picker
 - Redesigned 5-tab UI (bottom navigation): Home, Clock, Effects, Background,
   Settings
@@ -89,11 +95,14 @@ app/src/main/java/com/prakash/pwall/
 │   │   ├── LayerSystem / EffectManager / ModuleSystem
 │   │   ├── Layer / Effect / Module    # Modular seams for future features
 │   │   ├── WallpaperCoreModule        # Default 5-layer stack
-│   │   ├── PremiumEffectsModule       # Glass panel below the clock
+│   │   ├── PremiumEffectsModule       # Glass panel + time container below the clock
 │   │   ├── ClockBlockLayout           # Shared clock + date layout math
+│   │   ├── TimeContainer              # Pure time-widget container geometry
+│   │   ├── TimeContainerPresets       # One-tap container presets (pure)
 │   │   ├── RenderAnimation            # TimeTransition / Breathing / easing
 │   │   ├── ClockDraw                  # Shared glow + alpha text drawing
 │   │   └── layers/                    # Background / Glass / Clock / Date / Foreground / Overlay
+│   │       └── BackdropBlur           # Shared real backdrop blur (glass + container)
 │   ├── color/                     # Dynamic colors from the wallpaper
 │   │   ├── DominantColorExtractor # Pure quantization of dominant colors
 │   │   └── ColorPalette           # Palette + readable auto clock/date colors
@@ -196,6 +205,14 @@ touching the core stack:
 - **Cinematic Zoom** (`CinematicZoom`): pure Ken Burns math (zoom-in / zoom-out /
   alternate sine loop) applied as a post-scale on the shared `backgroundMatrix`,
   so the AI-depth foreground stays pixel-aligned while the camera sweeps.
+- **Time Background** (`TimeContainerLayer`): the time widget gets its own
+  background container registered *below* the clock layer. Transparent (the
+  default) draws nothing — the classic render is byte-identical. The other modes
+  fill a padded box around the time text with a solid/gradient/backdrop-blur/
+  custom-image fill clipped to the chosen shape (Rounded / Capsule / Circle),
+  with an optional dashed/dotted border and a soft shadow. Paints, clip paths,
+  image bitmaps and the blur scratch buffers are cached and reused; the backdrop
+  blur is shared with the Glass Clock via `BackdropBlur`.
 
 ## Production Performance
 
@@ -232,6 +249,7 @@ clutters shared storage.
 |-----------------------------|--------------------------------------|---------|
 | `datastore/pwall_settings.preferences_pb` | All user settings (DataStore) | Permanent |
 | `wallpaper_images/selected_image.*`       | The picked wallpaper image   | Permanent |
+| `widget_images/widget_image.*`            | The time-widget background image | Permanent |
 | `depth_masks/<key>/*.png`                 | AI masks + manual edits      | Derived cache |
 | `profileInstalled`, `profileinstaller_*.dat` | AndroidX profile installer  | Library cache |
 | `phenotype_storage_info/`                 | Play-services bookkeeping     | Library cache |
@@ -288,12 +306,12 @@ gradlew.bat :app:assembleRelease
 ## Release Notes
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history. Highlights of the
-**1.0.1** stable release: documented ProGuard rules, release hardening
-(non-debuggable, no secrets, debug logs compiled out), a settings-backup fix
-for device transfer, a performance pass (formatter caching, smaller APK), an
-updated About screen, and a complete storage audit. On-device release
-validation: install, five-screen navigation, live wallpaper render threads,
-AI Depth toggle and DataStore persistence all verified with no crashes.
+**1.1.3** release: a fully customizable "Time Background" container for the time
+widget (Transparent by default, so no forced chip behind the clock), with
+solid/gradient/glass/wallpaper-blur/custom-image fills, shapes, border, shadow,
+opacity, padding and one-tap presets — all rendered below the clock layer with
+cached paints and a shared backdrop blur, and persisted in DataStore. On-device
+validation: the Glass preset applies and persists across restart with no crashes.
 
 ## Roadmap
 

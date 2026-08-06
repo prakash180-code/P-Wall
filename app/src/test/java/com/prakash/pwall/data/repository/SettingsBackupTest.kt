@@ -3,14 +3,19 @@ package com.prakash.pwall.data.repository
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.prakash.pwall.data.model.AppTheme
+import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.ClockLayout
+import com.prakash.pwall.data.model.ContainerBorderStyle
+import com.prakash.pwall.data.model.ContainerShape
 import com.prakash.pwall.data.model.DateLayout
+import com.prakash.pwall.data.model.GradientDirection
 import com.prakash.pwall.data.model.ParallaxSensitivityLevel
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.TimeLayout
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetBackgroundMode
 import com.prakash.pwall.data.model.WidgetStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -55,7 +60,32 @@ class SettingsBackupTest {
         appTheme = AppTheme.CUSTOM,
         customPrimaryColor = Color(0xFF123456).toArgb().toLong(),
         customAccentColor = 0xFFABCDEF.toLong(),
-        transparency = 75
+        transparency = 75,
+        widgetBackgroundMode = WidgetBackgroundMode.GRADIENT,
+        widgetBackgroundColor = Color(0xFF112233).toArgb().toLong(),
+        widgetBackgroundColor2 = Color(0xFF445566).toArgb().toLong(),
+        widgetGradientDirection = GradientDirection.DIAGONAL,
+        widgetBackgroundOpacity = 42,
+        widgetGlassBlur = 18f,
+        widgetGlassTintColor = Color(0x44FFFFFF).toArgb().toLong(),
+        widgetWallpaperBlurStrength = 24f,
+        widgetWallpaperTintColor = Color(0xAA000000).toArgb().toLong(),
+        widgetImageFit = BackgroundMode.STRETCH,
+        widgetShape = ContainerShape.CAPSULE,
+        widgetCornerRadius = 36f,
+        widgetBorderEnabled = true,
+        widgetBorderColor = Color(0xFFABCDEF).toArgb().toLong(),
+        widgetBorderWidth = 3f,
+        widgetBorderOpacity = 55,
+        widgetBorderStyle = ContainerBorderStyle.DASHED,
+        widgetShadowEnabled = true,
+        widgetShadowColor = Color(0x88000000).toArgb().toLong(),
+        widgetShadowBlur = 22f,
+        widgetShadowSpread = 4f,
+        widgetShadowOffsetX = -2f,
+        widgetShadowOffsetY = 8f,
+        widgetPaddingHorizontal = 33f,
+        widgetPaddingVertical = 19f
     )
 
     @Test

@@ -4,14 +4,18 @@ import com.prakash.pwall.data.model.AppTheme
 import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.ClockLayout
+import com.prakash.pwall.data.model.ContainerBorderStyle
+import com.prakash.pwall.data.model.ContainerShape
 import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.DateLayout
+import com.prakash.pwall.data.model.GradientDirection
 import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.ParallaxSensitivityLevel
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.TimeLayout
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetBackgroundMode
 import com.prakash.pwall.data.model.WidgetStyle
 import com.prakash.pwall.data.model.ZoomDirection
 
@@ -49,6 +53,26 @@ object SettingsBackup {
         bool("date_italic", settings.dateItalic)
         bool("date_shadow_enabled", settings.dateShadowEnabled)
         bool("date_animated", settings.dateAnimated)
+        bool("widget_border_enabled", settings.widgetBorderEnabled)
+        bool("widget_shadow_enabled", settings.widgetShadowEnabled)
+        int("widget_background_opacity", settings.widgetBackgroundOpacity)
+        int("widget_border_opacity", settings.widgetBorderOpacity)
+        float("widget_glass_blur", settings.widgetGlassBlur)
+        float("widget_wallpaper_blur_strength", settings.widgetWallpaperBlurStrength)
+        float("widget_corner_radius", settings.widgetCornerRadius)
+        float("widget_border_width", settings.widgetBorderWidth)
+        float("widget_shadow_blur", settings.widgetShadowBlur)
+        float("widget_shadow_spread", settings.widgetShadowSpread)
+        float("widget_shadow_offset_x", settings.widgetShadowOffsetX)
+        float("widget_shadow_offset_y", settings.widgetShadowOffsetY)
+        float("widget_padding_horizontal", settings.widgetPaddingHorizontal)
+        float("widget_padding_vertical", settings.widgetPaddingVertical)
+        long("widget_background_color", settings.widgetBackgroundColor)
+        long("widget_background_color2", settings.widgetBackgroundColor2)
+        long("widget_glass_tint_color", settings.widgetGlassTintColor)
+        long("widget_wallpaper_tint_color", settings.widgetWallpaperTintColor)
+        long("widget_border_color", settings.widgetBorderColor)
+        long("widget_shadow_color", settings.widgetShadowColor)
         bool("parallax_enabled", settings.parallaxEnabled)
         bool("debug_parallax", settings.debugParallax)
         bool("depth_enabled", settings.depthEnabled)
@@ -107,6 +131,11 @@ object SettingsBackup {
         enum("date_position", settings.datePosition)
         enum("date_font", settings.dateFont)
         enum("position", settings.position)
+        enum("widget_background_mode", settings.widgetBackgroundMode)
+        enum("widget_gradient_direction", settings.widgetGradientDirection)
+        enum("widget_image_fit", settings.widgetImageFit)
+        enum("widget_shape", settings.widgetShape)
+        enum("widget_border_style", settings.widgetBorderStyle)
         enum("background_mode", settings.backgroundMode)
         enum("parallax_sensitivity_level", settings.parallaxSensitivityLevel)
         enum("zoom_direction", settings.zoomDirection)
@@ -195,6 +224,40 @@ object SettingsBackup {
             dateShadowOffsetY = float("date_shadow_offset_y", defaults.dateShadowOffsetY),
             dateShadowColor = long("date_shadow_color", defaults.dateShadowColor),
             dateAnimated = bool("date_animated", defaults.dateAnimated),
+            widgetBackgroundMode = enum(
+                "widget_background_mode", WidgetBackgroundMode.entries, defaults.widgetBackgroundMode
+            ),
+            widgetBackgroundColor = long("widget_background_color", defaults.widgetBackgroundColor),
+            widgetBackgroundColor2 = long("widget_background_color2", defaults.widgetBackgroundColor2),
+            widgetGradientDirection = enum(
+                "widget_gradient_direction", GradientDirection.entries, defaults.widgetGradientDirection
+            ),
+            widgetBackgroundOpacity = int("widget_background_opacity", defaults.widgetBackgroundOpacity),
+            widgetGlassBlur = float("widget_glass_blur", defaults.widgetGlassBlur),
+            widgetGlassTintColor = long("widget_glass_tint_color", defaults.widgetGlassTintColor),
+            widgetWallpaperBlurStrength =
+                float("widget_wallpaper_blur_strength", defaults.widgetWallpaperBlurStrength),
+            widgetWallpaperTintColor =
+                long("widget_wallpaper_tint_color", defaults.widgetWallpaperTintColor),
+            widgetImageFit = enum("widget_image_fit", BackgroundMode.entries, defaults.widgetImageFit),
+            widgetShape = enum("widget_shape", ContainerShape.entries, defaults.widgetShape),
+            widgetCornerRadius = float("widget_corner_radius", defaults.widgetCornerRadius),
+            widgetBorderEnabled = bool("widget_border_enabled", defaults.widgetBorderEnabled),
+            widgetBorderColor = long("widget_border_color", defaults.widgetBorderColor),
+            widgetBorderWidth = float("widget_border_width", defaults.widgetBorderWidth),
+            widgetBorderOpacity = int("widget_border_opacity", defaults.widgetBorderOpacity),
+            widgetBorderStyle = enum(
+                "widget_border_style", ContainerBorderStyle.entries, defaults.widgetBorderStyle
+            ),
+            widgetShadowEnabled = bool("widget_shadow_enabled", defaults.widgetShadowEnabled),
+            widgetShadowColor = long("widget_shadow_color", defaults.widgetShadowColor),
+            widgetShadowBlur = float("widget_shadow_blur", defaults.widgetShadowBlur),
+            widgetShadowSpread = float("widget_shadow_spread", defaults.widgetShadowSpread),
+            widgetShadowOffsetX = float("widget_shadow_offset_x", defaults.widgetShadowOffsetX),
+            widgetShadowOffsetY = float("widget_shadow_offset_y", defaults.widgetShadowOffsetY),
+            widgetPaddingHorizontal =
+                float("widget_padding_horizontal", defaults.widgetPaddingHorizontal),
+            widgetPaddingVertical = float("widget_padding_vertical", defaults.widgetPaddingVertical),
             backgroundMode = enum("background_mode", BackgroundMode.entries, defaults.backgroundMode),
             backgroundZoom = float("background_zoom", defaults.backgroundZoom),
             backgroundRotationDegrees =

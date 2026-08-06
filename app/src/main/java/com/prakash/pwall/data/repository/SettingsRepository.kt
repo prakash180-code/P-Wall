@@ -13,14 +13,18 @@ import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.AppTheme
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.ClockLayout
+import com.prakash.pwall.data.model.ContainerBorderStyle
+import com.prakash.pwall.data.model.ContainerShape
 import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.DateLayout
+import com.prakash.pwall.data.model.GradientDirection
 import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.ParallaxSensitivityLevel
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.TimeLayout
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetBackgroundMode
 import com.prakash.pwall.data.model.WidgetStyle
 import com.prakash.pwall.data.model.ZoomDirection
 import com.prakash.pwall.data.storage.ImageStore
@@ -37,7 +41,8 @@ import java.io.IOException
  */
 class SettingsRepository(
     private val dataStore: DataStore<Preferences>,
-    private val imageStore: ImageStore
+    private val imageStore: ImageStore,
+    private val widgetImageStore: ImageStore
 ) {
 
     val settings: Flow<WallpaperSettings> = dataStore.data
@@ -116,6 +121,50 @@ class SettingsRepository(
             dateShadowOffsetY = floatPreference(DATE_SHADOW_OFFSET_Y, 2f),
             dateShadowColor = longPreference(DATE_SHADOW_COLOR, WallpaperSettings().dateShadowColor),
             dateAnimated = booleanPreference(DATE_ANIMATED, true),
+            widgetBackgroundMode =
+                WidgetBackgroundMode.entries.firstOrNull {
+                    it.name == stringPreference(WIDGET_BACKGROUND_MODE)
+                } ?: WallpaperSettings().widgetBackgroundMode,
+            widgetBackgroundColor =
+                longPreference(WIDGET_BACKGROUND_COLOR, WallpaperSettings().widgetBackgroundColor),
+            widgetBackgroundColor2 =
+                longPreference(WIDGET_BACKGROUND_COLOR2, WallpaperSettings().widgetBackgroundColor2),
+            widgetGradientDirection =
+                GradientDirection.entries.firstOrNull {
+                    it.name == stringPreference(WIDGET_GRADIENT_DIRECTION)
+                } ?: WallpaperSettings().widgetGradientDirection,
+            widgetBackgroundOpacity = intPreference(WIDGET_BACKGROUND_OPACITY, 50),
+            widgetGlassBlur = floatPreference(WIDGET_GLASS_BLUR, 20f),
+            widgetGlassTintColor =
+                longPreference(WIDGET_GLASS_TINT_COLOR, WallpaperSettings().widgetGlassTintColor),
+            widgetWallpaperBlurStrength = floatPreference(WIDGET_WALLPAPER_BLUR_STRENGTH, 16f),
+            widgetWallpaperTintColor =
+                longPreference(WIDGET_WALLPAPER_TINT_COLOR, WallpaperSettings().widgetWallpaperTintColor),
+            widgetImagePath = widgetImageStore.imagePath,
+            widgetImageFit = BackgroundMode.entries.firstOrNull {
+                it.name == stringPreference(WIDGET_IMAGE_FIT)
+            } ?: WallpaperSettings().widgetImageFit,
+            widgetShape = ContainerShape.entries.firstOrNull {
+                it.name == stringPreference(WIDGET_SHAPE)
+            } ?: WallpaperSettings().widgetShape,
+            widgetCornerRadius = floatPreference(WIDGET_CORNER_RADIUS, 24f),
+            widgetBorderEnabled = booleanPreference(WIDGET_BORDER_ENABLED, false),
+            widgetBorderColor =
+                longPreference(WIDGET_BORDER_COLOR, WallpaperSettings().widgetBorderColor),
+            widgetBorderWidth = floatPreference(WIDGET_BORDER_WIDTH, 2f),
+            widgetBorderOpacity = intPreference(WIDGET_BORDER_OPACITY, 60),
+            widgetBorderStyle = ContainerBorderStyle.entries.firstOrNull {
+                it.name == stringPreference(WIDGET_BORDER_STYLE)
+            } ?: WallpaperSettings().widgetBorderStyle,
+            widgetShadowEnabled = booleanPreference(WIDGET_SHADOW_ENABLED, false),
+            widgetShadowColor =
+                longPreference(WIDGET_SHADOW_COLOR, WallpaperSettings().widgetShadowColor),
+            widgetShadowBlur = floatPreference(WIDGET_SHADOW_BLUR, 16f),
+            widgetShadowSpread = floatPreference(WIDGET_SHADOW_SPREAD, 0f),
+            widgetShadowOffsetX = floatPreference(WIDGET_SHADOW_OFFSET_X, 0f),
+            widgetShadowOffsetY = floatPreference(WIDGET_SHADOW_OFFSET_Y, 6f),
+            widgetPaddingHorizontal = floatPreference(WIDGET_PADDING_HORIZONTAL, 20f),
+            widgetPaddingVertical = floatPreference(WIDGET_PADDING_VERTICAL, 14f),
             backgroundMode = BackgroundMode.entries.firstOrNull { it.name == stringPreference(BACKGROUND_MODE) }
                 ?: WallpaperSettings().backgroundMode,
             backgroundZoom = floatPreference(BACKGROUND_ZOOM, 1f),
@@ -201,6 +250,31 @@ class SettingsRepository(
         prefs[floatPreferencesKey(DATE_SHADOW_OFFSET_Y)] = dateShadowOffsetY
         prefs[longPreferencesKey(DATE_SHADOW_COLOR)] = dateShadowColor
         prefs[booleanPreferencesKey(DATE_ANIMATED)] = dateAnimated
+        prefs[stringPreferencesKey(WIDGET_BACKGROUND_MODE)] = widgetBackgroundMode.name
+        prefs[longPreferencesKey(WIDGET_BACKGROUND_COLOR)] = widgetBackgroundColor
+        prefs[longPreferencesKey(WIDGET_BACKGROUND_COLOR2)] = widgetBackgroundColor2
+        prefs[stringPreferencesKey(WIDGET_GRADIENT_DIRECTION)] = widgetGradientDirection.name
+        prefs[intPreferencesKey(WIDGET_BACKGROUND_OPACITY)] = widgetBackgroundOpacity
+        prefs[floatPreferencesKey(WIDGET_GLASS_BLUR)] = widgetGlassBlur
+        prefs[longPreferencesKey(WIDGET_GLASS_TINT_COLOR)] = widgetGlassTintColor
+        prefs[floatPreferencesKey(WIDGET_WALLPAPER_BLUR_STRENGTH)] = widgetWallpaperBlurStrength
+        prefs[longPreferencesKey(WIDGET_WALLPAPER_TINT_COLOR)] = widgetWallpaperTintColor
+        prefs[stringPreferencesKey(WIDGET_IMAGE_FIT)] = widgetImageFit.name
+        prefs[stringPreferencesKey(WIDGET_SHAPE)] = widgetShape.name
+        prefs[floatPreferencesKey(WIDGET_CORNER_RADIUS)] = widgetCornerRadius
+        prefs[booleanPreferencesKey(WIDGET_BORDER_ENABLED)] = widgetBorderEnabled
+        prefs[longPreferencesKey(WIDGET_BORDER_COLOR)] = widgetBorderColor
+        prefs[floatPreferencesKey(WIDGET_BORDER_WIDTH)] = widgetBorderWidth
+        prefs[intPreferencesKey(WIDGET_BORDER_OPACITY)] = widgetBorderOpacity
+        prefs[stringPreferencesKey(WIDGET_BORDER_STYLE)] = widgetBorderStyle.name
+        prefs[booleanPreferencesKey(WIDGET_SHADOW_ENABLED)] = widgetShadowEnabled
+        prefs[longPreferencesKey(WIDGET_SHADOW_COLOR)] = widgetShadowColor
+        prefs[floatPreferencesKey(WIDGET_SHADOW_BLUR)] = widgetShadowBlur
+        prefs[floatPreferencesKey(WIDGET_SHADOW_SPREAD)] = widgetShadowSpread
+        prefs[floatPreferencesKey(WIDGET_SHADOW_OFFSET_X)] = widgetShadowOffsetX
+        prefs[floatPreferencesKey(WIDGET_SHADOW_OFFSET_Y)] = widgetShadowOffsetY
+        prefs[floatPreferencesKey(WIDGET_PADDING_HORIZONTAL)] = widgetPaddingHorizontal
+        prefs[floatPreferencesKey(WIDGET_PADDING_VERTICAL)] = widgetPaddingVertical
         prefs[stringPreferencesKey(BACKGROUND_MODE)] = backgroundMode.name
         prefs[floatPreferencesKey(BACKGROUND_ZOOM)] = backgroundZoom
         prefs[floatPreferencesKey(BACKGROUND_ROTATION_DEGREES)] = backgroundRotationDegrees
@@ -306,6 +380,31 @@ class SettingsRepository(
         const val DATE_SHADOW_OFFSET_Y = "date_shadow_offset_y"
         const val DATE_SHADOW_COLOR = "date_shadow_color"
         const val DATE_ANIMATED = "date_animated"
+        const val WIDGET_BACKGROUND_MODE = "widget_background_mode"
+        const val WIDGET_BACKGROUND_COLOR = "widget_background_color"
+        const val WIDGET_BACKGROUND_COLOR2 = "widget_background_color2"
+        const val WIDGET_GRADIENT_DIRECTION = "widget_gradient_direction"
+        const val WIDGET_BACKGROUND_OPACITY = "widget_background_opacity"
+        const val WIDGET_GLASS_BLUR = "widget_glass_blur"
+        const val WIDGET_GLASS_TINT_COLOR = "widget_glass_tint_color"
+        const val WIDGET_WALLPAPER_BLUR_STRENGTH = "widget_wallpaper_blur_strength"
+        const val WIDGET_WALLPAPER_TINT_COLOR = "widget_wallpaper_tint_color"
+        const val WIDGET_IMAGE_FIT = "widget_image_fit"
+        const val WIDGET_SHAPE = "widget_shape"
+        const val WIDGET_CORNER_RADIUS = "widget_corner_radius"
+        const val WIDGET_BORDER_ENABLED = "widget_border_enabled"
+        const val WIDGET_BORDER_COLOR = "widget_border_color"
+        const val WIDGET_BORDER_WIDTH = "widget_border_width"
+        const val WIDGET_BORDER_OPACITY = "widget_border_opacity"
+        const val WIDGET_BORDER_STYLE = "widget_border_style"
+        const val WIDGET_SHADOW_ENABLED = "widget_shadow_enabled"
+        const val WIDGET_SHADOW_COLOR = "widget_shadow_color"
+        const val WIDGET_SHADOW_BLUR = "widget_shadow_blur"
+        const val WIDGET_SHADOW_SPREAD = "widget_shadow_spread"
+        const val WIDGET_SHADOW_OFFSET_X = "widget_shadow_offset_x"
+        const val WIDGET_SHADOW_OFFSET_Y = "widget_shadow_offset_y"
+        const val WIDGET_PADDING_HORIZONTAL = "widget_padding_horizontal"
+        const val WIDGET_PADDING_VERTICAL = "widget_padding_vertical"
         const val BACKGROUND_MODE = "background_mode"
         const val BACKGROUND_ZOOM = "background_zoom"
         const val BACKGROUND_ROTATION_DEGREES = "background_rotation_degrees"

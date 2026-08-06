@@ -240,11 +240,13 @@ object ClockWidgetLayout {
         val dateY = datePos.second
 
         val timeBlock = if (settings.clockVisible) {
-            val recipe = WidgetStyleRecipe.recipe(settings.timeStyle)
             val chunks = buildChunks(
                 timeLines, timePaint, timeInfo, timeX, timeY, timeAlign(settings)
             )
-            val chip = chipRect(recipe, timeX, timeY, timeInfo.width, timeInfo.height, timePaint.textSize)
+            // v1.1.3: the time widget background is owned by the time container
+            // (TimeContainerLayer). The style-recipe chip is suppressed so no
+            // forced white chip renders behind the time text — the default
+            // container is transparent and the user picks its look explicitly.
             WidgetBlock(
                 chunks = chunks,
                 fillPaint = timePaint,
@@ -255,10 +257,7 @@ object ClockWidgetLayout {
                 width = timeInfo.width,
                 height = timeInfo.height,
                 centerX = timeX + timeInfo.width / 2f,
-                centerY = timeY + timeInfo.height / 2f,
-                chipRect = chip?.first,
-                chipCorner = chip?.second ?: 0f,
-                chipAlpha = recipe.chipAlpha
+                centerY = timeY + timeInfo.height / 2f
             )
         } else {
             null

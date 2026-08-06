@@ -73,13 +73,21 @@ class WallpaperRenderEngineTest {
     }
 
     @Test
-    fun premiumEffectsModule_placesGlassPanelBelowClock() {
+    fun premiumEffectsModule_placesGlassAndContainerBelowClock() {
         val engine = WallpaperRenderEngine()
         engine.installModule(WallpaperCoreModule())
         engine.installModule(PremiumEffectsModule())
 
         assertEquals(
-            listOf("background", "glass-panel", "clock", "date", "foreground", "overlay"),
+            listOf(
+                "background",
+                "glass-panel",
+                "time-container",
+                "clock",
+                "date",
+                "foreground",
+                "overlay"
+            ),
             engine.layerIds
         )
     }

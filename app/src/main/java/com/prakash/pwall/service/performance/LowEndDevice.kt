@@ -2,6 +2,7 @@ package com.prakash.pwall.service.performance
 
 import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetBackgroundMode
 
 /**
  * Decides whether the device should run in low-end mode and derives the
@@ -42,9 +43,12 @@ object LowEndDevice {
      * Returns [settings] unchanged on normal hardware, or a copy with the heavy
      * per-frame effects disabled on low-end hardware. Everything else (position,
      * colors, fonts, depth) is preserved so the wallpaper keeps the user's look.
+     * The time widget container's per-frame blur modes (Glass, Wallpaper Blur)
+     * degrade to a solid fill so the blur sampling cost is skipped too.
      */
     fun optimizedSettings(settings: WallpaperSettings, lowEnd: Boolean): WallpaperSettings {
         if (!lowEnd) return settings
+        val containerMode = settings.widgetBackgroundMode
         return settings.copy(
             glassEnabled = false,
             breathingEnabled = false,
@@ -54,7 +58,12 @@ object LowEndDevice {
             parallaxEnabled = false,
             shadowEnabled = false,
             dateAnimated = false,
-            dateShadowEnabled = false
+            dateShadowEnabled = false,
+            widgetBackgroundMode = when (containerMode) {
+                WidgetBackgroundMode.GLASS,
+                WidgetBackgroundMode.WALLPAPER_BLUR -> WidgetBackgroundMode.SOLID
+                else -> containerMode
+            }
         )
     }
 }

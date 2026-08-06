@@ -2,6 +2,50 @@
 
 All notable changes to **P-Wall** are documented here.
 
+## [1.1.3] - Time Background (Widget Container)
+
+The time widget gains a fully customizable background container. The default is
+**Transparent**, so existing wallpapers keep rendering exactly as before (the
+forced white chip behind the time is gone).
+
+### Added
+- **Time background** editor in the Clock tab:
+  - Modes: **Transparent** (default) / **Solid Color** / **Gradient** /
+    **Glass** (real backdrop blur) / **Wallpaper Blur** / **Custom Image**
+  - Shapes: None / Rectangle / Rounded / Capsule / Circle-Oval with a
+    0–40 dp corner radius
+  - Border: color, width (0–20 dp), opacity (0–100%), Solid / Dashed / Dotted
+  - Shadow: color, blur (0–60 dp), spread, X/Y offset
+  - Opacity 0–100% and horizontal/vertical padding 0–50 dp
+  - Quick presets: Transparent, Minimal, Glass, Frosted Glass, Dark Card,
+    Light Card, Rounded, Capsule, Elegant, Custom (highlighted once you tweak)
+  - Custom Image picker (Photo Picker + SAF fallback) with Fit / Fill /
+    Stretch / Center Crop, stored in its own `widget_images/` store
+- **Render layer** (`TimeContainerLayer`, registered below the clock):
+  - Pure, JVM-tested geometry in `TimeContainer` (padding box, shape corners,
+    gradient endpoints, image fit, dash intervals)
+  - Cached/reused paints, clip paths and image bitmaps; `Releasable`
+  - Real backdrop blur shared with the glass panel via `BackdropBlur`
+  - No-op in Transparent mode, so the default render is byte-identical to the
+    classic stack (the forced chip behind the time is also suppressed)
+- **Persistence**: 26 new DataStore keys + JSON backup fields (device image
+  path intentionally excluded, like the wallpaper image); `ImageStore` is now
+  parametrized (directory + prefix) so wallpaper and widget images coexist
+- **Low-end mode**: Glass / Wallpaper Blur container fills degrade to a solid
+  fill on low-end devices (per-frame blur sampling skipped)
+- Unit tests: `TimeContainerTest`, `TimeContainerPresetsTest`, container
+  demotion cases in `LowEndDeviceTest`, container fields in `SettingsBackupTest`,
+  updated layer-order expectations in `WallpaperRenderEngineTest`
+
+### Verified
+- `testDebugUnitTest`: **218/218** pass; `lintDebug`: 0 errors / 15 warnings
+  (baseline unchanged); `assembleDebug` + `assembleRelease` build
+- On-device smoke test (API 33 physical device, debug APK):
+  - "Time background" section renders in Clock; Glass quick preset applies
+    (mode + conditional blur/tint controls appear)
+  - Glass mode persists across a force-stop / restart (DataStore)
+  - No FATAL / ANR / render errors in logcat
+
 ## [1.0.1] - Stable Release Preparation
 
 A stability, usability and release-preparation update. No features were

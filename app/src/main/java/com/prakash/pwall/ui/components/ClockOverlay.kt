@@ -285,6 +285,10 @@ private fun WidgetClockOverlay(
 
     val timeRecipe = WidgetStyleRecipe.recipe(settings.timeStyle)
     val dateRecipe = WidgetStyleRecipe.recipe(settings.dateStyle)
+    // v1.1.3: the time widget background is owned by the time container, so the
+    // style-recipe chip is suppressed here to match the wallpaper engine (the
+    // date widget keeps its own chip).
+    val timeContainerRecipe = timeRecipe.copy(chipEnabled = false, chipAlpha = 0f)
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val maxWidth = constraints.maxWidth.toFloat()
@@ -330,7 +334,7 @@ private fun WidgetClockOverlay(
                 baseFamily = settings.clockFont,
                 userBold = settings.clockBold,
                 userItalic = settings.clockItalic,
-                recipe = timeRecipe,
+                recipe = timeContainerRecipe,
                 userShadow = if (settings.shadowEnabled) {
                     Shadow(
                         color = settings.shadowColorValue,

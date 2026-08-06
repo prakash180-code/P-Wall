@@ -8,17 +8,23 @@ import com.prakash.pwall.data.model.AppTheme
 import com.prakash.pwall.data.model.BackgroundMode
 import com.prakash.pwall.data.model.ClockFont
 import com.prakash.pwall.data.model.ClockLayout
+import com.prakash.pwall.data.model.ContainerBorderStyle
+import com.prakash.pwall.data.model.ContainerShape
 import com.prakash.pwall.data.model.DateFormat
 import com.prakash.pwall.data.model.DateLayout
+import com.prakash.pwall.data.model.GradientDirection
 import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.ParallaxSensitivityLevel
 import com.prakash.pwall.data.model.PositionPreset
 import com.prakash.pwall.data.model.TimeFormat
 import com.prakash.pwall.data.model.TimeLayout
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetBackgroundMode
 import com.prakash.pwall.data.model.WidgetStyle
 import com.prakash.pwall.data.model.ZoomDirection
 import com.prakash.pwall.data.repository.SettingsRepository
+import com.prakash.pwall.service.render.TimeContainerPreset
+import com.prakash.pwall.service.render.TimeContainerPresets
 import com.prakash.pwall.service.render.WidgetPreset
 import com.prakash.pwall.service.render.WidgetPresets
 import kotlinx.coroutines.flow.SharingStarted
@@ -234,6 +240,101 @@ class AppSettingsViewModel(
             backgroundTranslateXFraction = xFraction.coerceIn(-1f, 1f),
             backgroundTranslateYFraction = yFraction.coerceIn(-1f, 1f)
         )
+    }
+
+    // --- Time background (container) ---
+
+    fun setWidgetBackgroundMode(mode: WidgetBackgroundMode) =
+        update { it.copy(widgetBackgroundMode = mode) }
+
+    fun setWidgetBackgroundColor(color: Color) =
+        update { it.copy(widgetBackgroundColor = color.toArgb().toLong()) }
+
+    fun setWidgetBackgroundColor2(color: Color) =
+        update { it.copy(widgetBackgroundColor2 = color.toArgb().toLong()) }
+
+    fun setWidgetGradientDirection(direction: GradientDirection) =
+        update { it.copy(widgetGradientDirection = direction) }
+
+    fun setWidgetBackgroundOpacity(percent: Int) = update {
+        it.copy(widgetBackgroundOpacity = percent.coerceIn(0, 100))
+    }
+
+    fun setWidgetGlassBlur(blur: Float) = update {
+        it.copy(widgetGlassBlur = blur.coerceIn(0f, 100f))
+    }
+
+    fun setWidgetGlassTintColor(color: Color) =
+        update { it.copy(widgetGlassTintColor = color.toArgb().toLong()) }
+
+    fun setWidgetWallpaperBlur(strength: Float) = update {
+        it.copy(widgetWallpaperBlurStrength = strength.coerceIn(0f, 100f))
+    }
+
+    fun setWidgetWallpaperTintColor(color: Color) =
+        update { it.copy(widgetWallpaperTintColor = color.toArgb().toLong()) }
+
+    fun setWidgetImageFit(mode: BackgroundMode) =
+        update { it.copy(widgetImageFit = mode) }
+
+    fun setWidgetImagePath(path: String?) =
+        update { it.copy(widgetImagePath = path) }
+
+    fun setWidgetShape(shape: ContainerShape) = update { it.copy(widgetShape = shape) }
+
+    fun setWidgetCornerRadius(radius: Float) = update {
+        it.copy(widgetCornerRadius = radius.coerceIn(0f, 40f))
+    }
+
+    fun setWidgetBorderEnabled(enabled: Boolean) =
+        update { it.copy(widgetBorderEnabled = enabled) }
+
+    fun setWidgetBorderColor(color: Color) =
+        update { it.copy(widgetBorderColor = color.toArgb().toLong()) }
+
+    fun setWidgetBorderWidth(width: Float) = update {
+        it.copy(widgetBorderWidth = width.coerceIn(0f, 20f))
+    }
+
+    fun setWidgetBorderOpacity(percent: Int) = update {
+        it.copy(widgetBorderOpacity = percent.coerceIn(0, 100))
+    }
+
+    fun setWidgetBorderStyle(style: ContainerBorderStyle) =
+        update { it.copy(widgetBorderStyle = style) }
+
+    fun setWidgetShadowEnabled(enabled: Boolean) =
+        update { it.copy(widgetShadowEnabled = enabled) }
+
+    fun setWidgetShadowColor(color: Color) =
+        update { it.copy(widgetShadowColor = color.toArgb().toLong()) }
+
+    fun setWidgetShadowBlur(blur: Float) = update {
+        it.copy(widgetShadowBlur = blur.coerceIn(0f, 60f))
+    }
+
+    fun setWidgetShadowSpread(spread: Float) = update {
+        it.copy(widgetShadowSpread = spread.coerceIn(0f, 40f))
+    }
+
+    fun setWidgetShadowOffset(x: Float, y: Float) = update {
+        it.copy(
+            widgetShadowOffsetX = x.coerceIn(-40f, 40f),
+            widgetShadowOffsetY = y.coerceIn(-40f, 40f)
+        )
+    }
+
+    fun setWidgetPaddingHorizontal(value: Float) = update {
+        it.copy(widgetPaddingHorizontal = value.coerceIn(0f, 50f))
+    }
+
+    fun setWidgetPaddingVertical(value: Float) = update {
+        it.copy(widgetPaddingVertical = value.coerceIn(0f, 50f))
+    }
+
+    /** Applies a one-tap [TimeContainerPreset] to the time widget container. */
+    fun applyTimeContainerPreset(preset: TimeContainerPreset) = update {
+        TimeContainerPresets.apply(it, preset)
     }
 
     // --- Settings page (app theme) ---

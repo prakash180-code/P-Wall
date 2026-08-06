@@ -28,8 +28,11 @@ class AppContainer(context: Context) {
 
     val imageStore: ImageStore = ImageStore(appContext)
 
+    /** Stores the custom image for the time widget container (kept separate). */
+    val widgetImageStore: ImageStore = ImageStore(appContext, "widget_images", "widget_image")
+
     val settingsRepository: SettingsRepository by lazy {
-        SettingsRepository(appContext.settingsDataStore, imageStore)
+        SettingsRepository(appContext.settingsDataStore, imageStore, widgetImageStore)
     }
 
     /** Shared mask cache, read by the wallpaper service and the manual depth editor. */

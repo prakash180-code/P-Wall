@@ -2,6 +2,7 @@ package com.prakash.pwall.service.performance
 
 import com.prakash.pwall.data.model.LowEndPreference
 import com.prakash.pwall.data.model.WallpaperSettings
+import com.prakash.pwall.data.model.WidgetBackgroundMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -83,5 +84,41 @@ class LowEndDeviceTest {
         assertFalse(optimized.dateShadowEnabled)
         // Typography is not a per-frame cost, so it is preserved.
         assertTrue(optimized.dateBold)
+    }
+
+    @Test
+    fun optimizedSettings_demotesPerFrameBlurContainerModesOnLowEnd() {
+        val glass = LowEndDevice.optimizedSettings(
+            WallpaperSettings(widgetBackgroundMode = WidgetBackgroundMode.GLASS),
+            lowEnd = true
+        )
+        assertEquals(WidgetBackgroundMode.SOLID, glass.widgetBackgroundMode)
+
+        val wallpaperBlur = LowEndDevice.optimizedSettings(
+            WallpaperSettings(widgetBackgroundMode = WidgetBackgroundMode.WALLPAPER_BLUR),
+            lowEnd = true
+        )
+        assertEquals(WidgetBackgroundMode.SOLID, wallpaperBlur.widgetBackgroundMode)
+    }
+
+    @Test
+    fun optimizedSettings_preservesNonBlurContainerModesOnLowEnd() {
+        val settings = WallpaperSettings(
+            widgetBackgroundMode = WidgetBackgroundMode.SOLID,
+            widgetBackgroundOpacity = 70,
+            widgetBorderEnabled = true,
+            widgetShadowEnabled = true
+        )
+        val optimized = LowEndDevice.optimizedSettings(settings, lowEnd = true)
+        assertEquals(WidgetBackgroundMode.SOLID, optimized.widgetBackgroundMode)
+        assertEquals(70, optimized.widgetBackgroundOpacity)
+        assertTrue(optimized.widgetBorderEnabled)
+        assertTrue(optimized.widgetShadowEnabled)
+    }
+
+    @Test
+    fun optimizedSettings_keepsBlurContainerOnCapableHardware() {
+        val settings = WallpaperSettings(widgetBackgroundMode = WidgetBackgroundMode.GLASS)
+        assertSame(settings, LowEndDevice.optimizedSettings(settings, lowEnd = false))
     }
 }

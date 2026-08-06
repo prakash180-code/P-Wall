@@ -150,6 +150,46 @@ enum class BackgroundMode(val displayName: String) {
     CUSTOM("Custom")
 }
 
+/**
+ * Background of the time widget container. TRANSPARENT (the default) draws no
+ * background at all, so the widget sits directly on the wallpaper. The other
+ * modes fill the container with a solid color, a two-color gradient, a real
+ * frosted-glass backdrop blur, a wallpaper backdrop blur, or a custom image.
+ */
+enum class WidgetBackgroundMode(val displayName: String) {
+    TRANSPARENT("Transparent"),
+    SOLID("Solid Color"),
+    GRADIENT("Gradient"),
+    GLASS("Glass"),
+    WALLPAPER_BLUR("Wallpaper Blur"),
+    IMAGE("Custom Image")
+}
+
+/** Sweep direction for the [WidgetBackgroundMode.GRADIENT] container fill. */
+enum class GradientDirection(val displayName: String) {
+    LEFT_TO_RIGHT("Left to Right"),
+    RIGHT_TO_LEFT("Right to Left"),
+    TOP_TO_BOTTOM("Top to Bottom"),
+    BOTTOM_TO_TOP("Bottom to Top"),
+    DIAGONAL("Diagonal")
+}
+
+/** Corner treatment of the time widget container. */
+enum class ContainerShape(val displayName: String) {
+    NONE("None"),
+    RECTANGLE("Rectangle"),
+    ROUNDED("Rounded"),
+    CAPSULE("Capsule"),
+    CIRCLE("Circle / Oval")
+}
+
+/** Line style of the time widget container border. */
+enum class ContainerBorderStyle(val displayName: String) {
+    SOLID("Solid"),
+    DASHED("Dashed"),
+    DOTTED("Dotted")
+}
+
 /** System font families exposed for the clock. */
 enum class ClockFont(val displayName: String, val familyName: String) {
     DEFAULT("Default", "sans-serif"),
@@ -232,6 +272,51 @@ data class WallpaperSettings(
     val dateShadowColor: Long = Color(0x99000000).toArgb().toLong(),
     /** Whether the date widget participates in breathing/transition effects. */
     val dateAnimated: Boolean = true,
+    // --- Time widget background / container (v1.1.3) ---
+    // The container wraps the time widget only (the date keeps its own look).
+    // The default is TRANSPARENT so existing wallpapers keep rendering with no
+    // forced background; any other mode draws behind the time text.
+    val widgetBackgroundMode: WidgetBackgroundMode = WidgetBackgroundMode.TRANSPARENT,
+    /** Fill color for SOLID, and gradient start color for GRADIENT. */
+    val widgetBackgroundColor: Long = Color(0xFF1A1A1A).toArgb().toLong(),
+    /** Gradient end color for GRADIENT. */
+    val widgetBackgroundColor2: Long = Color(0xFF3949AB).toArgb().toLong(),
+    val widgetGradientDirection: GradientDirection = GradientDirection.LEFT_TO_RIGHT,
+    /** Container fill / tint opacity in percent (0 = fully transparent). */
+    val widgetBackgroundOpacity: Int = 50,
+    /** Backdrop blur strength (dp) for GLASS. */
+    val widgetGlassBlur: Float = 20f,
+    /** Tint color laid over the blurred backdrop for GLASS. */
+    val widgetGlassTintColor: Long = Color.White.toArgb().toLong(),
+    /** Backdrop blur strength (dp) for WALLPAPER_BLUR. */
+    val widgetWallpaperBlurStrength: Float = 16f,
+    /** Tint color laid over the blurred backdrop for WALLPAPER_BLUR. */
+    val widgetWallpaperTintColor: Long = Color.Black.toArgb().toLong(),
+    /** Absolute path of the custom image for IMAGE; falls back to the wallpaper image. */
+    val widgetImagePath: String? = null,
+    /** How the custom image fits the container for IMAGE. */
+    val widgetImageFit: BackgroundMode = BackgroundMode.CENTER_CROP,
+    val widgetShape: ContainerShape = ContainerShape.ROUNDED,
+    /** Corner radius in dp for ROUNDED (0 renders a sharp rectangle). */
+    val widgetCornerRadius: Float = 24f,
+    val widgetBorderEnabled: Boolean = false,
+    val widgetBorderColor: Long = Color.White.toArgb().toLong(),
+    val widgetBorderWidth: Float = 2f,
+    /** Border opacity in percent. */
+    val widgetBorderOpacity: Int = 60,
+    val widgetBorderStyle: ContainerBorderStyle = ContainerBorderStyle.SOLID,
+    val widgetShadowEnabled: Boolean = false,
+    val widgetShadowColor: Long = Color(0x66000000).toArgb().toLong(),
+    /** Shadow softness in dp. */
+    val widgetShadowBlur: Float = 16f,
+    /** Shadow size inflation in dp (0 = same size as the shape). */
+    val widgetShadowSpread: Float = 0f,
+    val widgetShadowOffsetX: Float = 0f,
+    val widgetShadowOffsetY: Float = 6f,
+    /** Horizontal padding (dp) between the time text and the container edge. */
+    val widgetPaddingHorizontal: Float = 20f,
+    /** Vertical padding (dp) between the time text and the container edge. */
+    val widgetPaddingVertical: Float = 14f,
     val backgroundMode: BackgroundMode = BackgroundMode.FIT,
     val backgroundZoom: Float = 1f,
     val backgroundRotationDegrees: Float = 0f,
@@ -288,4 +373,22 @@ data class WallpaperSettings(
 
     val glassGlowColorValue: Color
         get() = Color(glassGlowColor)
+
+    val widgetBackgroundColorValue: Color
+        get() = Color(widgetBackgroundColor)
+
+    val widgetBackgroundColor2Value: Color
+        get() = Color(widgetBackgroundColor2)
+
+    val widgetGlassTintColorValue: Color
+        get() = Color(widgetGlassTintColor)
+
+    val widgetWallpaperTintColorValue: Color
+        get() = Color(widgetWallpaperTintColor)
+
+    val widgetBorderColorValue: Color
+        get() = Color(widgetBorderColor)
+
+    val widgetShadowColorValue: Color
+        get() = Color(widgetShadowColor)
 }

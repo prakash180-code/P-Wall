@@ -1,13 +1,10 @@
 package com.prakash.pwall.service.render.layers
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PorterDuff
-import android.graphics.Rect
 import android.graphics.RectF
 import com.prakash.pwall.service.render.ClockWidgetLayout
 import com.prakash.pwall.service.render.Layer
@@ -32,11 +29,7 @@ class GlassPanelLayer : Layer, Releasable {
 
     override val id: String = "glass-panel"
 
-    private var scratch: Bitmap? = null
-    private var blurOut: Bitmap? = null
-    private var cachedKey: Pair<Int, Int>? = null
-
-    private val filterPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val blur = BackdropBlur()
 
     private var clipPath: Path? = null
     private var clipKey: String? = null
@@ -64,7 +57,7 @@ class GlassPanelLayer : Layer, Releasable {
         canvas.clipPath(clip)
 
         if (frame.backgroundBitmap != null && settings.glassBlurRadius > 0f) {
-            drawBlurredBackdrop(canvas, frame, rect, settings.glassBlurRadius * density)
+            blur.draw(canvas, frame, rect, settings.glassBlurRadius * density)
         }
 
         val panelAlpha = (0xFF * settings.glassPanelOpacity.coerceIn(0, 100) / 100)
@@ -132,66 +125,8 @@ class GlassPanelLayer : Layer, Releasable {
         return RectF(left, top, right, bottom)
     }
 
-    /**
-     * Samples the wallpaper behind [rect] into a tiny bitmap (downscale ~= blur
-     * radius), then draws it scaled back up — a cheap, allocation-free blur.
-     */
-    private fun drawBlurredBackdrop(
-        canvas: Canvas,
-        frame: RenderFrame,
-        rect: RectF,
-        blurRadius: Float
-    ) {
-        val background = frame.backgroundBitmap ?: return
-        val scale = (1f / (1f + blurRadius / 3f)).coerceIn(0.08f, 1f)
-        val sw = (rect.width() * scale).toInt().coerceAtLeast(1)
-        val sh = (rect.height() * scale).toInt().coerceAtLeast(1)
-        val dw = rect.width().toInt().coerceAtLeast(1)
-        val dh = rect.height().toInt().coerceAtLeast(1)
-        if (sw * sh <= 0) return
-
-        val (sample, output) = obtain(sw, sh, dw, dh)
-
-        val sampleCanvas = Canvas(sample)
-        sampleCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-        sampleCanvas.save()
-        sampleCanvas.scale(scale, scale)
-        sampleCanvas.translate(-rect.left, -rect.top)
-        sampleCanvas.drawBitmap(background, frame.backgroundMatrix, null)
-        sampleCanvas.restore()
-
-        val outCanvas = Canvas(output)
-        outCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-        outCanvas.drawBitmap(
-            sample,
-            null,
-            Rect(0, 0, dw, dh),
-            filterPaint
-        )
-
-        canvas.drawBitmap(output, rect.left, rect.top, null)
-    }
-
-    private fun obtain(sw: Int, sh: Int, dw: Int, dh: Int): Pair<Bitmap, Bitmap> {
-        val key = sw to sh
-        var sample = scratch
-        var output = blurOut
-        if (cachedKey != key || sample == null || output == null) {
-            sample = Bitmap.createBitmap(sw, sh, Bitmap.Config.ARGB_8888)
-            output = Bitmap.createBitmap(dw, dh, Bitmap.Config.ARGB_8888)
-            scratch = sample
-            blurOut = output
-            cachedKey = key
-        }
-        return (sample to output)
-    }
-
     override fun release() {
-        scratch?.recycle()
-        scratch = null
-        blurOut?.recycle()
-        blurOut = null
-        cachedKey = null
+        blur.release()
         clipPath = null
         clipKey = null
     }
