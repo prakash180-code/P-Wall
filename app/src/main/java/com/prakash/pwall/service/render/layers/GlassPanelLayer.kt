@@ -10,6 +10,7 @@ import com.prakash.pwall.service.render.ClockWidgetLayout
 import com.prakash.pwall.service.render.Layer
 import com.prakash.pwall.service.render.Releasable
 import com.prakash.pwall.service.render.RenderFrame
+import com.prakash.pwall.service.render.TimeContainer
 import kotlin.math.max
 import kotlin.math.min
 
@@ -23,6 +24,10 @@ import kotlin.math.min
  *
  * Registers immediately below the clock layer so the depth foreground still
  * renders on top (the clock, panel included, stays behind the subject).
+ *
+ * The panel is suppressed entirely while the time container is TRANSPARENT:
+ * the Time Background setting is the single owner of anything drawn behind the
+ * clock, so "Transparent" always means no box at all.
  */
 @SuppressLint("UseKtx")
 class GlassPanelLayer : Layer, Releasable {
@@ -37,6 +42,10 @@ class GlassPanelLayer : Layer, Releasable {
     override fun draw(canvas: Canvas, frame: RenderFrame) {
         val settings = frame.settings
         if (!settings.glassEnabled) return
+        // The Time Background container is the single source of truth for what
+        // sits behind the clock: when it is explicitly TRANSPARENT, no box at
+        // all may render, so the legacy glass panel is suppressed too.
+        if (TimeContainer.isInactive(settings)) return
 
         val engine = frame.widgetEngine
         val density = frame.displayDensity
